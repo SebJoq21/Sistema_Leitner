@@ -4,6 +4,8 @@ import { RequireAuth } from '@/features/auth/RequireAuth';
 import { LoginPage } from '@/pages/Login';
 import { DashboardPage, dashboardLoader } from '@/pages/Dashboard';
 import { StudySessionPage, studyLoader } from '@/pages/StudySession';
+import { CardsPage, cardsLoader } from '@/pages/Cards';
+import { BoxesPage, boxesLoader } from '@/pages/Boxes';
 import { RouteError } from '@/pages/RouteError';
 
 export const router = createBrowserRouter([
@@ -20,6 +22,26 @@ export const router = createBrowserRouter([
           </RequireAuth>
         ),
         loader: dashboardLoader,
+        errorElement: <RouteError />,
+      },
+      {
+        path: '/cards',
+        element: (
+          <RequireAuth>
+            <CardsPage />
+          </RequireAuth>
+        ),
+        loader: cardsLoader,
+        errorElement: <RouteError />,
+      },
+      {
+        path: '/boxes',
+        element: (
+          <RequireAuth>
+            <BoxesPage />
+          </RequireAuth>
+        ),
+        loader: boxesLoader,
         errorElement: <RouteError />,
       },
       {

@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useNavigation } from 'react-router-dom';
-import { Button } from './ui/button';
 import { Skeleton, SkeletonLine } from './ui/skeleton';
+import { SidebarBody } from './Sidebar';
 import { useAuth } from '@/features/auth/AuthContext';
 
 function DashboardSkeleton() {
@@ -42,57 +43,101 @@ function StudySkeleton() {
   );
 }
 
+function RowsSkeleton() {
+  return (
+    <div className="grid gap-3" aria-label="Cargando tarjetas">
+      <SkeletonLine className="h-6 w-40" />
+      {[0, 1, 2, 3].map((i) => (
+        <Skeleton key={i} className="h-20 w-full !rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+function BoxesSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5" aria-label="Cargando cajas">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Skeleton key={i} className="h-40 w-full" />
+      ))}
+    </div>
+  );
+}
+
+function PendingContent({ pathname }: { pathname: string }) {
+  if (pathname.startsWith('/study')) return <StudySkeleton />;
+  if (pathname.startsWith('/cards')) return <RowsSkeleton />;
+  if (pathname.startsWith('/boxes')) return <BoxesSkeleton />;
+  return <DashboardSkeleton />;
+}
+
 export function Layout() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const navigation = useNavigation();
   const location = useLocation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const isLoading = navigation.state !== 'idle';
 
   async function handleSignOut() {
     await signOut();
+    setDrawerOpen(false);
     navigate('/login');
   }
 
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+      {/* Top bar solo móvil: el sidebar vive en drawer */}
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur md:hidden dark:border-slate-800 dark:bg-slate-900/80">
+        <div className="flex h-14 items-center gap-3 px-4">
+          <button
+            type="button"
+            aria-label="Abrir menú"
+            onClick={() => setDrawerOpen(true)}
+            className="rounded-xl border border-slate-200 px-3 py-1.5 text-lg leading-none dark:border-slate-700"
+          >
+            ☰
+          </button>
           <Link to="/" className="text-base font-extrabold tracking-tight text-indigo-600">
             Leitner
           </Link>
-          <nav className="flex items-center gap-2">
-            <Link to="/">
-              <Button variant="ghost" size="sm">
-                Mazos
-              </Button>
-            </Link>
-            <Link to="/study">
-              <Button variant="ghost" size="sm">
-                Estudiar
-              </Button>
-            </Link>
-            {user ? (
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                Salir
-              </Button>
-            ) : (
-              <Link to="/login">
-                <Button size="sm">Entrar</Button>
-              </Link>
-            )}
-          </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-8">
-        {isLoading && location.pathname.startsWith('/study') ? (
-          <StudySkeleton />
-        ) : isLoading ? (
-          <DashboardSkeleton />
-        ) : (
-          <Outlet />
-        )}
-      </main>
+
+      {/* Sidebar fijo en desktop */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 border-r border-slate-200 bg-white md:block dark:border-slate-800 dark:bg-slate-900">
+        <SidebarBody email={user?.email} onSignOut={handleSignOut} />
+      </aside>
+
+      {/* Drawer móvil */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-slate-950/50" onClick={() => setDrawerOpen(false)} />
+          <aside className="absolute inset-y-0 left-0 w-64 bg-white shadow-xl dark:bg-slate-900">
+            <div className="flex justify-end p-2">
+              <button
+                type="button"
+                aria-label="Cerrar menú"
+                onClick={() => setDrawerOpen(false)}
+                className="rounded-xl px-3 py-1.5 text-lg leading-none hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                ✕
+              </button>
+            </div>
+            <SidebarBody email={user?.email} onSignOut={handleSignOut} />
+          </aside>
+        </div>
+      )}
+
+      <div className="md:pl-60">
+        <main className="mx-auto max-w-5xl px-4 py-8">
+          {isLoading ? <PendingContent pathname={location.pathname} /> : <Outlet />}
+        </main>
+      </div>
     </div>
   );
 }

@@ -17,6 +17,19 @@ export interface DueCard {
   deck?: { id: string; nombre: string };
 }
 
+export interface BoxStats {
+  caja: number;
+  intervaloDias: number;
+  total: number;
+  pendientes: number;
+}
+
+export interface CardFilters {
+  deckId?: string;
+  caja?: number;
+  search?: string;
+}
+
 async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
@@ -52,11 +65,26 @@ export const api = {
   deleteDeck: (token: string, id: string) =>
     request<void>(`/api/v1/decks/${id}`, token, { method: 'DELETE' }),
 
-  dueCards: (token: string, deckId?: string) =>
-    request<DueCard[]>(
-      `/api/v1/cards/due${deckId ? `?deckId=${encodeURIComponent(deckId)}` : ''}`,
-      token,
-    ),
+  dueCards: (token: string, deckId?: string, caja?: number) => {
+    const q = new URLSearchParams();
+    if (deckId) q.set('deckId', deckId);
+    if (caja !== undefined) q.set('caja', String(caja));
+    const suffix = q.size > 0 ? `?${q.toString()}` : '';
+    return request<DueCard[]>(`/api/v1/cards/due${suffix}`, token);
+  },
+  listCards: (token: string, filters: CardFilters = {}) => {
+    const q = new URLSearchParams();
+    if (filters.deckId) q.set('deckId', filters.deckId);
+    if (filters.caja !== undefined) q.set('caja', String(filters.caja));
+    if (filters.search) q.set('search', filters.search);
+    const suffix = q.size > 0 ? `?${q.toString()}` : '';
+    return request<DueCard[]>(`/api/v1/cards${suffix}`, token);
+  },
+  boxesStats: (token: string) => request<BoxStats[]>('/api/v1/cards/boxes', token),
+  updateCard: (token: string, id: string, data: { frontText?: string; backText?: string }) =>
+    request<DueCard>(`/api/v1/cards/${id}`, token, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteCard: (token: string, id: string) =>
+    request<void>(`/api/v1/cards/${id}`, token, { method: 'DELETE' }),
   createCard: (token: string, data: { deckId: string; frontText: string; backText: string }) =>
     request<DueCard>('/api/v1/cards', token, { method: 'POST', body: JSON.stringify(data) }),
   reviewCard: (token: string, id: string, acierto: boolean) =>
