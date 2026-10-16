@@ -18,14 +18,25 @@ export interface DueCard {
 }
 
 async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${base}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(init?.headers ?? {}),
-    },
-  });
+  let res: Response;
+  try {
+    // Sin timeout, un backend apagado deja la promesa colgada eternamente
+    // y el router re-dispara loaders acumulando requests pendientes.
+    res = await fetch(`${base}${path}`, {
+      ...init,
+      signal: init?.signal ?? AbortSignal.timeout(15000),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(init?.headers ?? {}),
+      },
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new Error('El servidor no responde. ¿Está el backend encendido en :3001?');
+    }
+    throw new Error('No se pudo conectar al servidor. ¿Está el backend encendido en :3001?');
+  }
   if (res.status === 204) return undefined as T;
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

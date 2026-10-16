@@ -1,0 +1,21 @@
+import { cn } from '@/lib/utils';
+
+export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      aria-hidden
+      className={cn('animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800', className)}
+      {...props}
+    />
+  );
+}
+
+export function SkeletonLine({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      aria-hidden
+      className={cn('h-3 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800', className)}
+      {...props}
+    />
+  );
+}

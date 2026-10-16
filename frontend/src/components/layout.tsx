@@ -1,10 +1,53 @@
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate, useNavigation } from 'react-router-dom';
 import { Button } from './ui/button';
+import { Skeleton, SkeletonLine } from './ui/skeleton';
 import { useAuth } from '@/features/auth/AuthContext';
+
+function DashboardSkeleton() {
+  return (
+    <div className="grid gap-6" aria-label="Cargando mazos">
+      <div className="flex items-center justify-between gap-3">
+        <div className="grid w-48 gap-2">
+          <SkeletonLine className="h-6 w-32" />
+          <SkeletonLine className="w-40" />
+        </div>
+        <div className="flex gap-2">
+          <Skeleton className="h-10 w-28 !rounded-xl" />
+          <Skeleton className="h-10 w-28 !rounded-xl" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
+            <SkeletonLine className="h-5 w-2/3" />
+            <SkeletonLine className="w-full" />
+            <SkeletonLine className="w-1/3" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StudySkeleton() {
+  return (
+    <div className="grid gap-6 py-4" aria-label="Cargando sesión de estudio">
+      <SkeletonLine className="mx-auto h-6 w-48" />
+      <Skeleton className="mx-auto min-h-64 w-full max-w-xl" />
+      <div className="mx-auto flex w-full max-w-xl gap-3">
+        <Skeleton className="h-12 flex-1 !rounded-xl" />
+        <Skeleton className="h-12 flex-1 !rounded-xl" />
+      </div>
+    </div>
+  );
+}
 
 export function Layout() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const navigation = useNavigation();
+  const location = useLocation();
+  const isLoading = navigation.state !== 'idle';
 
   async function handleSignOut() {
     await signOut();
@@ -42,7 +85,13 @@ export function Layout() {
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">
-        <Outlet />
+        {isLoading && location.pathname.startsWith('/study') ? (
+          <StudySkeleton />
+        ) : isLoading ? (
+          <DashboardSkeleton />
+        ) : (
+          <Outlet />
+        )}
       </main>
     </div>
   );
