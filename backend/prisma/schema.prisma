@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Sincronizado con Supabase Auth (auth.users.id)
+model User {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  createdAt DateTime @default(now())
+  decks     Deck[]
+
+  @@map("users")
+}
+
+model Deck {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  nombre      String
+  descripcion String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cards Card[]
+
+  @@index([userId])
+  @@map("decks")
+}
+
+model Card {
+  id              String   @id @default(uuid()) @db.Uuid
+  deckId          String   @db.Uuid
+  frontText       String
+  backText        String
+  cajaActual      Int      @default(1)
+  proximaRevision DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  deck    Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  reviews Review[]
+
+  @@index([deckId])
+  @@index([proximaRevision])
+  @@map("cards")
+}
+
+model Review {
+  id            String   @id @default(uuid()) @db.Uuid
+  cardId        String   @db.Uuid
+  resultado     Boolean
+  fechaRevision DateTime @default(now())
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([cardId])
+  @@map("reviews")
+}
