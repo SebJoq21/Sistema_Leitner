@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { supabase } from '../../config/supabase';
+import { supabase } from '../../config/supabase.js';
 
 export interface AuthUser {
   id: string;

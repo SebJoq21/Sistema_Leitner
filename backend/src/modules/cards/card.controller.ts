@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import { cardService } from './card.service';
-import { requireUserId } from '../../middlewares/validate';
+import { cardService } from './card.service.js';
+import { requireUserId } from '../../middlewares/validate.js';
 
 export const cardController = {
   async due(req: Request, res: Response) {

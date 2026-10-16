@@ -1,6 +1,6 @@
-import { prisma } from '../../config/prisma';
-import type { CreateCardDto } from './card.dto';
-import { calcularProximaRevision, tarjetaInicial } from './leitner.service';
+import { prisma } from '../../config/prisma.js';
+import type { CreateCardDto } from './card.dto.js';
+import { calcularProximaRevision, tarjetaInicial } from './leitner.service.js';
 
 export const cardRepository = {
   findDueByUser(userId: string, deckId?: string) {

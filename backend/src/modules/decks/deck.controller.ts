@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import { deckService } from './deck.service';
-import { requireUserId } from '../../middlewares/validate';
+import { deckService } from './deck.service.js';
+import { requireUserId } from '../../middlewares/validate.js';
 
 export const deckController = {
   async list(req: Request, res: Response) {

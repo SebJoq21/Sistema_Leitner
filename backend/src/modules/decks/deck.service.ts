@@ -1,5 +1,5 @@
-import { deckRepository } from './deck.repository';
-import type { CreateDeckDto, UpdateDeckDto } from './deck.dto';
+import { deckRepository } from './deck.repository.js';
+import type { CreateDeckDto, UpdateDeckDto } from './deck.dto.js';
 
 export const deckService = {
   list(userId: string) {

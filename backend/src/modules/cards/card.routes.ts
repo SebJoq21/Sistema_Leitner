@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { authMiddleware } from '../auth/auth.middleware';
-import { validateBody } from '../../middlewares/validate';
-import { cardController } from './card.controller';
-import { createCardSchema, reviewCardSchema } from './card.dto';
+import { authMiddleware } from '../auth/auth.middleware.js';
+import { validateBody } from '../../middlewares/validate.js';
+import { cardController } from './card.controller.js';
+import { createCardSchema, reviewCardSchema } from './card.dto.js';
 
 export const cardRoutes = Router();
 

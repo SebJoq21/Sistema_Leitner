@@ -1,5 +1,5 @@
-import { cardRepository } from './card.repository';
-import type { CreateCardDto } from './card.dto';
+import { cardRepository } from './card.repository.js';
+import type { CreateCardDto } from './card.dto.js';
 
 export const cardService = {
   due(userId: string, deckId?: string) {

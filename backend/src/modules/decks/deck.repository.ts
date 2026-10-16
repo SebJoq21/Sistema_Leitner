@@ -1,5 +1,5 @@
-import { prisma } from '../../config/prisma';
-import type { CreateDeckDto, UpdateDeckDto } from './deck.dto';
+import { prisma } from '../../config/prisma.js';
+import type { CreateDeckDto, UpdateDeckDto } from './deck.dto.js';
 
 export const deckRepository = {
   findAllByUser(userId: string) {

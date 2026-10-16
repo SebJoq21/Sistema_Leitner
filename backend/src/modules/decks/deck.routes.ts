@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { authMiddleware } from '../auth/auth.middleware';
-import { validateBody } from '../../middlewares/validate';
-import { deckController } from './deck.controller';
-import { createDeckSchema, updateDeckSchema } from './deck.dto';
+import { authMiddleware } from '../auth/auth.middleware.js';
+import { validateBody } from '../../middlewares/validate.js';
+import { deckController } from './deck.controller.js';
+import { createDeckSchema, updateDeckSchema } from './deck.dto.js';
 
 export const deckRoutes = Router();
 
