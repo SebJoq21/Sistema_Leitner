@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { deckService } from './deck.service.js';
 import { requireUserId } from '../../middlewares/validate.js';
+import { ensureUser } from '../auth/user-sync.js';
 
 export const deckController = {
   async list(req: Request, res: Response) {
@@ -9,6 +10,7 @@ export const deckController = {
   },
 
   async create(req: Request, res: Response) {
+    await ensureUser(requireUserId(req), req.user?.email);
     const deck = await deckService.create(requireUserId(req), req.body);
     res.status(201).json(deck);
   },

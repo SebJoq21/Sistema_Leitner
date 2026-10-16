@@ -1,5 +1,13 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import type { ZodSchema } from 'zod';
+
+// Express 4 no captura errores de handlers async: sin esto, un throw
+// (ej. FK de Prisma) es unhandled rejection y tumba el proceso.
+export function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>): RequestHandler {
+  return (req, res, next) => {
+    fn(req, res, next).catch(next);
+  };
+}
 
 export function validateBody(schema: ZodSchema) {
   return (req: Request, res: Response, next: NextFunction) => {

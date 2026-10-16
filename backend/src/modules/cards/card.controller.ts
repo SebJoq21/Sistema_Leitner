@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { cardService } from './card.service.js';
 import { requireUserId } from '../../middlewares/validate.js';
+import { ensureUser } from '../auth/user-sync.js';
 
 export const cardController = {
   async due(req: Request, res: Response) {
@@ -11,6 +12,7 @@ export const cardController = {
   },
 
   async create(req: Request, res: Response) {
+    await ensureUser(requireUserId(req), req.user?.email);
     const card = await cardService.create(requireUserId(req), req.body);
     res.status(201).json(card);
   },
