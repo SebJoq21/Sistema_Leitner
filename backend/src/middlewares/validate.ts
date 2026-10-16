@@ -20,6 +20,17 @@ export function validateBody(schema: ZodSchema) {
   };
 }
 
+export function validateQuery(schema: ZodSchema) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const parsed = schema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Filtros inválidos', details: parsed.error.flatten() });
+    }
+    req.query = parsed.data as unknown as Request['query'];
+    next();
+  };
+}
+
 export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
   console.error(err);
   res.status(500).json({ error: 'Error interno' });
