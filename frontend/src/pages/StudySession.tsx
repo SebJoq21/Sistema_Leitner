@@ -27,7 +27,7 @@ export function StudySessionPage() {
   const { cards, token } = useLoaderData() as StudyData;
   return (
     <div className="grid gap-6 py-4">
-      <h1 className="text-center text-2xl font-extrabold tracking-tight">Sesión de estudio</h1>
+      <h1 className="text-center text-2xl font-extrabold tracking-tight text-secondary-navy dark:text-white">Sesión de estudio</h1>
       <StudySessionView initialCards={cards} token={token} />
     </div>
   );

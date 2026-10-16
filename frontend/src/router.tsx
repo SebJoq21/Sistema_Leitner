@@ -8,12 +8,17 @@ import { CardsPage, cardsLoader } from '@/pages/Cards';
 import { BoxesPage, boxesLoader } from '@/pages/Boxes';
 import { RouteError } from '@/pages/RouteError';
 
+// /login va fuera del Layout: sin sidebar ni top-bar, solo el formulario centrado.
 export const router = createBrowserRouter([
+  {
+    path: '/login',
+    element: <LoginPage />,
+    errorElement: <RouteError />,
+  },
   {
     element: <Layout />,
     errorElement: <RouteError />,
     children: [
-      { path: '/login', element: <LoginPage /> },
       {
         path: '/',
         element: (

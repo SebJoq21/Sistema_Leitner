@@ -23,12 +23,14 @@ export function LoginPage() {
   }
 
   return (
-    <div className="grid gap-6 py-10">
+    <div className="min-h-screen bg-primary-muted dark:bg-slate-950">
+      <div className="mx-auto grid max-w-md gap-6 px-4 py-10">
       <div className="text-center">
-        <h1 className="text-2xl font-extrabold tracking-tight">Sistema Leitner</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-secondary-navy dark:text-white">Sistema Leitner</h1>
         <p className="mt-1 text-sm text-slate-500">Repetición espaciada en 5 cajas (1 · 3 · 7 · 15 · 30 días)</p>
       </div>
       <LoginForm onSuccess={() => navigate(from, { replace: true })} />
+      </div>
     </div>
   );
 }

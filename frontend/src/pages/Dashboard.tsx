@@ -81,12 +81,12 @@ export function DashboardPage() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Tus mazos</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-secondary-navy dark:text-white">Tus mazos</h1>
           <p className="text-sm text-slate-500">{dueTotal} tarjetas pendientes de repaso hoy</p>
         </div>
         <div className="flex gap-2">
           <Link to="/study">
-            <Button variant="success">Estudiar ({dueTotal})</Button>
+            <Button>Estudiar ({dueTotal})</Button>
           </Link>
           <Button variant="secondary" onClick={() => setDeckOpen(true)}>
             Nuevo mazo

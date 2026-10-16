@@ -2,6 +2,19 @@
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* 60% dominante: fondos limpios */
+  --color-primary-bg: #ffffff;
+  --color-primary-muted: #f8fafc;
+
+  /* 30% secundario: navegación, títulos, énfasis */
+  --color-secondary-blue: #1d4ed8;
+  --color-secondary-navy: #1e3a8a;
+  --color-secondary-hover: #1e40a8;
+
+  /* 10% acento: SOLO CTAs críticos */
+  --color-accent-orange: #f97316;
+  --color-accent-hover: #ea580c;
 }
 
 /* Zen Mode: fondo neutro, alto contraste en tarjetas */

@@ -46,7 +46,7 @@ export function LoginForm({ onSuccess }: { onSuccess: () => void }) {
           </Button>
           <button
             type="button"
-            className="text-xs text-indigo-600 hover:underline"
+            className="text-xs text-secondary-blue hover:underline"
             onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
           >
             {mode === 'login' ? '¿Sin cuenta? Regístrate' : '¿Ya tienes cuenta? Entra'}

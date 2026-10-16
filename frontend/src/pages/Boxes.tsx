@@ -18,7 +18,7 @@ export function BoxesPage() {
   return (
     <div className="grid gap-6">
       <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">Cajas Leitner</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-secondary-navy dark:text-white">Cajas Leitner</h1>
         <p className="text-sm text-slate-500">
           {total} tarjetas en total · {dueTotal} pendientes de repaso
         </p>
@@ -26,7 +26,7 @@ export function BoxesPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {boxes.map((box) => (
-          <Card key={box.caja} className={box.pendientes > 0 ? 'border-indigo-300' : undefined}>
+          <Card key={box.caja} className={box.pendientes > 0 ? 'border-secondary-blue' : undefined}>
             <CardHeader>
               <CardTitle>Caja {box.caja}</CardTitle>
               <p className="text-xs text-slate-500">cada {box.intervaloDias} {box.intervaloDias === 1 ? 'día' : 'días'}</p>

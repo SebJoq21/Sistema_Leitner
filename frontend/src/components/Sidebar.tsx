@@ -19,10 +19,10 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              'rounded-xl px-3 py-2 text-sm font-medium transition-colors',
+              'relative rounded-xl px-3 py-2 text-sm font-medium transition-colors',
               isActive
-                ? 'bg-indigo-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+                ? 'bg-white/10 text-white before:absolute before:left-0 before:top-1/2 before:h-5 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-accent-orange'
+                : 'text-slate-300 hover:bg-white/5 hover:text-white',
             )
           }
         >
@@ -36,24 +36,24 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
 export function SidebarBody({ email, onSignOut }: { email?: string; onSignOut: () => void }) {
   return (
     <div className="flex h-full flex-col gap-6 p-4">
-      <NavLink to="/" className="px-1 text-lg font-extrabold tracking-tight text-indigo-600">
+      <NavLink to="/" className="px-1 text-lg font-extrabold tracking-tight text-white">
         Leitner
       </NavLink>
       <NavItems />
-      <div className="mt-auto grid gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
-        {email && <p className="truncate px-1 text-xs text-slate-500">{email}</p>}
+      <div className="mt-auto grid gap-2 border-t border-white/10 pt-4">
+        {email && <p className="truncate px-1 text-xs text-slate-400">{email}</p>}
         {email ? (
           <button
             type="button"
             onClick={onSignOut}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+            className="rounded-xl border border-white/20 px-3 py-2 text-sm font-medium text-white hover:bg-white/5"
           >
             Salir
           </button>
         ) : (
           <NavLink
             to="/login"
-            className="rounded-xl bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-indigo-700"
+            className="rounded-xl bg-accent-orange px-3 py-2 text-center text-sm font-semibold text-white hover:bg-accent-hover"
           >
             Entrar
           </NavLink>

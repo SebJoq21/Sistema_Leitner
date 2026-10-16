@@ -107,7 +107,7 @@ export function CardsPage() {
   return (
     <div className="grid gap-6">
       <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">Tarjetas</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-secondary-navy dark:text-white">Tarjetas</h1>
         <p className="text-sm text-slate-500">{filtered.length} de {cards.length} tarjetas</p>
       </div>
 
@@ -157,7 +157,7 @@ export function CardsPage() {
               <CardContent>
                 <p className="text-sm text-slate-500">{card.backText}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                  <span className="rounded-full bg-secondary-blue/10 px-2 py-0.5 text-xs font-semibold text-secondary-blue dark:bg-secondary-blue/20 dark:text-slate-200">
                     Caja {card.cajaActual}
                   </span>
                   <span className="text-xs text-slate-400">{card.deck?.nombre}</span>

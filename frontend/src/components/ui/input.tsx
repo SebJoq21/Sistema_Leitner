@@ -18,7 +18,7 @@ export function Input({ className, label, error, id, ...props }: InputProps) {
       <input
         id={inputId}
         className={cn(
-          'h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-900',
+          'h-10 rounded-xl border border-slate-200 bg-primary-bg px-3 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900',
           error && 'border-rose-500 focus:border-rose-500 focus:ring-rose-100',
           className,
         )}
@@ -46,7 +46,7 @@ export function TextArea({ className, label, error, id, ...props }: TextAreaProp
       <textarea
         id={inputId}
         className={cn(
-          'min-h-20 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-900',
+          'min-h-20 rounded-xl border border-slate-200 bg-primary-bg px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900',
           error && 'border-rose-500',
           className,
         )}

@@ -20,7 +20,7 @@ export function Flashcard({ card, flipped, onFlip }: { card: DueCard; flipped: b
               </p>
             </CardContent>
           </Card>
-          <Card className="backface-hidden rotate-y-180 absolute inset-0 flex items-center justify-center bg-indigo-50 p-8 dark:bg-slate-800">
+          <Card className="backface-hidden rotate-y-180 absolute inset-0 flex items-center justify-center bg-secondary-blue/10 p-8 dark:bg-slate-800">
             <CardContent>
               <p className="text-center text-2xl font-medium">{card.backText}</p>
               <p className="mt-4 text-center text-xs text-slate-400">¿Acertaste?</p>
