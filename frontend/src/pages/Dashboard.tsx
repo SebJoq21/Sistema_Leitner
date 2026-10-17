@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLoaderData, useRevalidator, redirect } from 'react-router-dom';
+import { Clock, Play, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -82,19 +83,40 @@ export function DashboardPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary-navy dark:text-white">Tus mazos</h1>
-          <p className="text-sm text-slate-500">{dueTotal} tarjetas pendientes de repaso hoy</p>
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-soft">
+            <Clock className="size-4" />
+            {dueTotal > 0
+              ? `${dueTotal} tarjeta${dueTotal === 1 ? '' : 's'} pendiente${dueTotal === 1 ? '' : 's'} de repaso hoy`
+              : 'Nada pendiente por hoy'}
+          </p>
         </div>
         <div className="flex gap-2">
-          <Link to="/study">
-            <Button>Estudiar ({dueTotal})</Button>
-          </Link>
+          {dueTotal > 0 ? (
+            <Link to="/study">
+              <Button>
+                <Play className="size-4" />
+                Estudiar ({dueTotal})
+              </Button>
+            </Link>
+          ) : (
+            <Button disabled>
+              <Clock className="size-4" />
+              Nada pendiente
+            </Button>
+          )}
           <Button variant="secondary" onClick={() => setDeckOpen(true)}>
+            <Plus className="size-4" />
             Nuevo mazo
           </Button>
         </div>
       </div>
 
-      <DeckList decks={decks} onDelete={handleDeleteDeck} onAddCard={setCardDeck} />
+      <DeckList
+        decks={decks}
+        onDelete={handleDeleteDeck}
+        onAddCard={setCardDeck}
+        onCreateDeck={() => setDeckOpen(true)}
+      />
 
       <Dialog open={deckOpen} onOpenChange={setDeckOpen}>
         <DialogContent>

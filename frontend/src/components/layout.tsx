@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, Outlet, useLocation, useNavigate, useNavigation } from 'react-router-dom';
+import { Link, Outlet, useLoaderData, useLocation, useNavigate, useNavigation } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
 import { Skeleton, SkeletonLine } from './ui/skeleton';
 import { SidebarBody } from './Sidebar';
 import { useAuth } from '@/features/auth/AuthContext';
@@ -76,6 +77,8 @@ export function Layout() {
   const navigate = useNavigate();
   const navigation = useNavigation();
   const location = useLocation();
+  const rootData = useLoaderData() as { dueTotal?: number } | undefined;
+  const dueCount = rootData?.dueTotal ?? 0;
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isLoading = navigation.state !== 'idle';
 
@@ -98,9 +101,9 @@ export function Layout() {
             type="button"
             aria-label="Abrir menú"
             onClick={() => setDrawerOpen(true)}
-            className="rounded-xl border border-white/20 px-3 py-1.5 text-lg leading-none hover:bg-white/10"
+            className="rounded-xl border border-white/20 p-2 leading-none hover:bg-white/10"
           >
-            ☰
+            <Menu className="size-5" />
           </button>
           <Link to="/" className="text-base font-extrabold tracking-tight text-white">
             Leitner
@@ -110,7 +113,7 @@ export function Layout() {
 
       {/* Sidebar fijo en desktop */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 bg-secondary-navy md:block dark:bg-slate-950">
-        <SidebarBody email={user?.email} onSignOut={handleSignOut} />
+        <SidebarBody email={user?.email} dueCount={dueCount} onSignOut={handleSignOut} />
       </aside>
 
       {/* Drawer móvil */}
@@ -123,12 +126,12 @@ export function Layout() {
                 type="button"
                 aria-label="Cerrar menú"
                 onClick={() => setDrawerOpen(false)}
-                className="rounded-xl px-3 py-1.5 text-lg leading-none text-white hover:bg-white/10"
+                className="rounded-xl p-2 leading-none text-white hover:bg-white/10"
               >
-                ✕
+                <X className="size-5" />
               </button>
             </div>
-            <SidebarBody email={user?.email} onSignOut={handleSignOut} />
+            <SidebarBody email={user?.email} dueCount={dueCount} onSignOut={handleSignOut} />
           </aside>
         </div>
       )}

@@ -4,7 +4,16 @@ export interface Deck {
   id: string;
   nombre: string;
   descripcion?: string | null;
+  color?: string | null;
+  icon?: string | null;
+  tags?: string[];
+  metaDiaria?: number | null;
   _count?: { cards: number };
+  total?: number;
+  pendientes?: number;
+  dominadas?: number;
+  ultimoEstudio?: string | null;
+  proximaRevision?: string | null;
 }
 
 export interface DueCard {
@@ -12,9 +21,12 @@ export interface DueCard {
   deckId: string;
   frontText: string;
   backText: string;
+  hint?: string | null;
+  notas?: string | null;
+  tags?: string[];
   cajaActual: number;
   proximaRevision: string;
-  deck?: { id: string; nombre: string };
+  deck?: { id: string; nombre: string; color?: string | null; icon?: string | null };
 }
 
 export interface BoxStats {
@@ -24,10 +36,37 @@ export interface BoxStats {
   pendientes: number;
 }
 
+export interface Settings {
+  userId: string;
+  intervalos: number[];
+}
+
 export interface CardFilters {
   deckId?: string;
   caja?: number;
   search?: string;
+  tag?: string;
+  pendientes?: boolean;
+  order?: 'createdAt' | 'proximaRevision' | 'updatedAt';
+}
+
+export interface DeckPayload {
+  nombre: string;
+  descripcion?: string | null;
+  color?: string | null;
+  icon?: string | null;
+  tags?: string[];
+  metaDiaria?: number | null;
+}
+
+export interface CardPayload {
+  deckId: string;
+  frontText: string;
+  backText: string;
+  hint?: string | null;
+  notas?: string | null;
+  tags?: string[];
+  cajaInicial?: number;
 }
 
 async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
@@ -60,8 +99,10 @@ async function request<T>(path: string, token: string, init?: RequestInit): Prom
 
 export const api = {
   listDecks: (token: string) => request<Deck[]>('/api/v1/decks', token),
-  createDeck: (token: string, data: { nombre: string; descripcion?: string }) =>
+  createDeck: (token: string, data: DeckPayload) =>
     request<Deck>('/api/v1/decks', token, { method: 'POST', body: JSON.stringify(data) }),
+  updateDeck: (token: string, id: string, data: Partial<DeckPayload>) =>
+    request<Deck>(`/api/v1/decks/${id}`, token, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteDeck: (token: string, id: string) =>
     request<void>(`/api/v1/decks/${id}`, token, { method: 'DELETE' }),
 
@@ -77,19 +118,32 @@ export const api = {
     if (filters.deckId) q.set('deckId', filters.deckId);
     if (filters.caja !== undefined) q.set('caja', String(filters.caja));
     if (filters.search) q.set('search', filters.search);
+    if (filters.tag) q.set('tag', filters.tag);
+    if (filters.pendientes !== undefined) q.set('pendientes', String(filters.pendientes));
+    if (filters.order) q.set('order', filters.order);
     const suffix = q.size > 0 ? `?${q.toString()}` : '';
     return request<DueCard[]>(`/api/v1/cards${suffix}`, token);
   },
   boxesStats: (token: string) => request<BoxStats[]>('/api/v1/cards/boxes', token),
-  updateCard: (token: string, id: string, data: { frontText?: string; backText?: string }) =>
-    request<DueCard>(`/api/v1/cards/${id}`, token, { method: 'PATCH', body: JSON.stringify(data) }),
+  updateCard: (
+    token: string,
+    id: string,
+    data: { frontText?: string; backText?: string; hint?: string | null; notas?: string | null; tags?: string[] },
+  ) => request<DueCard>(`/api/v1/cards/${id}`, token, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteCard: (token: string, id: string) =>
     request<void>(`/api/v1/cards/${id}`, token, { method: 'DELETE' }),
-  createCard: (token: string, data: { deckId: string; frontText: string; backText: string }) =>
+  createCard: (token: string, data: CardPayload) =>
     request<DueCard>('/api/v1/cards', token, { method: 'POST', body: JSON.stringify(data) }),
   reviewCard: (token: string, id: string, acierto: boolean) =>
     request<DueCard>(`/api/v1/cards/${id}/review`, token, {
       method: 'POST',
       body: JSON.stringify({ acierto }),
+    }),
+
+  getSettings: (token: string) => request<Settings>('/api/v1/settings', token),
+  updateSettings: (token: string, intervalos: number[]) =>
+    request<Settings>('/api/v1/settings', token, {
+      method: 'PATCH',
+      body: JSON.stringify({ intervalos }),
     }),
 };

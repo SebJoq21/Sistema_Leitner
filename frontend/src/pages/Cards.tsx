@@ -1,12 +1,16 @@
 import { useMemo, useState } from 'react';
 import { Link, redirect, useLoaderData, useRevalidator, type LoaderFunctionArgs } from 'react-router-dom';
+import { Clock, Filter, Pencil, Play, Plus, SquareStack, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CajaBadge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input, TextArea } from '@/components/ui/input';
 import { api, type Deck, type DueCard } from '@/lib/api';
 import { getStoredToken } from '@/lib/supabase';
+import { formatNextReview } from '@/lib/leitner';
 
 export interface CardsData {
   cards: DueCard[];
@@ -48,8 +52,8 @@ function EditCardForm({
         await onSubmit({ frontText, backText });
       }}
     >
-      <TextArea label="Anverso" value={frontText} onChange={(e) => setFrontText(e.target.value)} />
-      <TextArea label="Reverso" value={backText} onChange={(e) => setBackText(e.target.value)} />
+      <TextArea label="Pregunta (anverso)" value={frontText} onChange={(e) => setFrontText(e.target.value)} />
+      <TextArea label="Respuesta (reverso)" value={backText} onChange={(e) => setBackText(e.target.value)} />
       <Button type="submit" disabled={submitting || frontText.trim() === '' || backText.trim() === ''}>
         {submitting ? 'Guardando…' : 'Guardar cambios'}
       </Button>
@@ -66,6 +70,14 @@ export function CardsPage() {
   const [caja, setCaja] = useState('');
   const [editing, setEditing] = useState<DueCard | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const hasFilters = search.trim() !== '' || deckId !== '' || caja !== '';
+
+  function clearFilters() {
+    setSearch('');
+    setDeckId('');
+    setCaja('');
+  }
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -108,69 +120,129 @@ export function CardsPage() {
     <div className="grid gap-6">
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight text-secondary-navy dark:text-white">Tarjetas</h1>
-        <p className="text-sm text-slate-500">{filtered.length} de {cards.length} tarjetas</p>
+        <p className="text-sm text-ink-soft">
+          {filtered.length} de {cards.length} tarjeta{cards.length === 1 ? '' : 's'}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Input label="Buscar" placeholder="Texto del anverso o reverso…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
+        <Input
+          label="Buscar"
+          placeholder="Texto de la pregunta o respuesta…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
         <div className="grid gap-1.5">
           <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Mazo</label>
           <select
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+            className="h-10 rounded-xl border border-slate-200 bg-primary-bg px-3 text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900"
             value={deckId}
             onChange={(e) => setDeckId(e.target.value)}
           >
             <option value="">Todos</option>
             {decks.map((d) => (
-              <option key={d.id} value={d.id}>{d.nombre}</option>
+              <option key={d.id} value={d.id}>
+                {d.nombre}
+              </option>
             ))}
           </select>
         </div>
         <div className="grid gap-1.5">
           <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Caja</label>
           <select
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-900"
+            className="h-10 rounded-xl border border-slate-200 bg-primary-bg px-3 text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900"
             value={caja}
             onChange={(e) => setCaja(e.target.value)}
           >
             <option value="">Todas</option>
             {[1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={n}>Caja {n}</option>
+              <option key={n} value={n}>
+                Caja {n}
+              </option>
             ))}
           </select>
         </div>
+        <Button variant="outline" onClick={clearFilters} disabled={!hasFilters}>
+          <X className="size-4" />
+          Limpiar
+        </Button>
       </div>
 
-      {filtered.length === 0 ? (
-        <Card>
-          <CardContent>
-            <p className="py-4 text-center text-sm text-slate-500">Sin tarjetas con esos filtros.</p>
-          </CardContent>
-        </Card>
+      {cards.length === 0 ? (
+        <EmptyState
+          icon={SquareStack}
+          title="Todavía no hay tarjetas"
+          description="Crea un mazo y añade tu primera tarjeta para empezar."
+          action={
+            <Link to="/">
+              <Button>
+                <Plus className="size-4" />
+                Ir a mis mazos
+              </Button>
+            </Link>
+          }
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Filter}
+          title="No encontramos tarjetas con ese filtro"
+          description="Prueba con otro texto o quita los filtros aplicados."
+          action={
+            <Button variant="secondary" onClick={clearFilters}>
+              <X className="size-4" />
+              Limpiar filtros
+            </Button>
+          }
+        />
       ) : (
         <div className="grid gap-3">
           {filtered.map((card) => (
-            <Card key={card.id}>
-              <CardHeader>
-                <CardTitle className="text-base">{card.frontText}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-500">{card.backText}</p>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-secondary-blue/10 px-2 py-0.5 text-xs font-semibold text-secondary-blue dark:bg-secondary-blue/20 dark:text-slate-200">
-                    Caja {card.cajaActual}
+            <Card key={card.id} className="transition-shadow hover:shadow-md">
+              <CardContent className="grid gap-3 pt-6">
+                <div className="grid gap-3 sm:grid-cols-2 sm:gap-6">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Pregunta</p>
+                    <p className="text-sm font-semibold text-ink">{card.frontText}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Respuesta</p>
+                    <p className="text-sm text-ink-soft">{card.backText}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <CajaBadge caja={card.cajaActual} />
+                  {card.deck && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft">
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: card.deck.color ?? '#1D4ED8' }}
+                        aria-hidden
+                      />
+                      {card.deck.nombre}
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
+                    <Clock className="size-3.5" />
+                    {formatNextReview(card.proximaRevision)}
                   </span>
-                  <span className="text-xs text-slate-400">{card.deck?.nombre}</span>
-                  <span className="ml-auto flex gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => setEditing(card)}>
-                      Editar
+                  <span className="ml-auto flex items-center gap-1">
+                    <Button size="icon" variant="ghost" aria-label="Editar tarjeta" onClick={() => setEditing(card)}>
+                      <Pencil className="size-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleDelete(card)}>
-                      Borrar
-                    </Button>
-                    <Link to={`/study?deckId=${card.deckId}`}>
-                      <Button size="sm">Estudiar</Button>
+                    <Link to={`/study?deckId=${card.deckId}`} aria-label="Estudiar este mazo">
+                      <Button size="icon" variant="ghost">
+                        <Play className="size-4" />
+                      </Button>
                     </Link>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-ink-soft hover:bg-error-soft hover:text-error"
+                      aria-label="Borrar tarjeta"
+                      onClick={() => handleDelete(card)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
                   </span>
                 </div>
               </CardContent>

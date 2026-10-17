@@ -4,12 +4,15 @@ import { Toaster } from 'sonner';
 import './index.css';
 import App from './App.tsx';
 import { AuthProvider } from './features/auth/AuthContext.tsx';
+import { TooltipProvider } from './components/ui/tooltip.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <App />
-      <Toaster richColors position="top-center" />
-    </AuthProvider>
+    <TooltipProvider>
+      <AuthProvider>
+        <App />
+        <Toaster richColors position="top-center" />
+      </AuthProvider>
+    </TooltipProvider>
   </StrictMode>,
 );

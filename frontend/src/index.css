@@ -7,6 +7,12 @@
   --color-primary-bg: #ffffff;
   --color-primary-muted: #f8fafc;
 
+  /* Superficies y texto */
+  --color-surface: #ffffff;
+  --color-border-soft: #e2e8f0;
+  --color-ink: #0f172a;
+  --color-ink-soft: #64748b;
+
   /* 30% secundario: navegación, títulos, énfasis */
   --color-secondary-blue: #1d4ed8;
   --color-secondary-navy: #1e3a8a;
@@ -15,11 +21,32 @@
   /* 10% acento: SOLO CTAs críticos */
   --color-accent-orange: #f97316;
   --color-accent-hover: #ea580c;
+
+  /* Semánticos */
+  --color-ok: #16a34a;
+  --color-ok-soft: #dcfce7;
+  --color-error: #dc2626;
+  --color-error-soft: #fee2e2;
+  --color-warn: #d97706;
+  --color-warn-soft: #fef3c7;
+  --color-info: #2563eb;
+  --color-info-soft: #dbeafe;
+
+  /* Colores por caja Leitner (progresión reciente → dominada) */
+  --color-caja-1: #ef4444;
+  --color-caja-2: #f97316;
+  --color-caja-3: #eab308;
+  --color-caja-4: #22c55e;
+  --color-caja-5: #0d9488;
+
+  --radius-card: 14px;
 }
 
 /* Zen Mode: fondo neutro, alto contraste en tarjetas */
 body {
   font-family: var(--font-sans);
+  background-color: var(--color-primary-muted);
+  color: var(--color-ink);
 }
 
 /* Flip 3D para StudyCard (spec §2.5: rotate-y-180 duration-500) */

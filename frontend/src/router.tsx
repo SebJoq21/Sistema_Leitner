@@ -7,6 +7,19 @@ import { StudySessionPage, studyLoader } from '@/pages/StudySession';
 import { CardsPage, cardsLoader } from '@/pages/Cards';
 import { BoxesPage, boxesLoader } from '@/pages/Boxes';
 import { RouteError } from '@/pages/RouteError';
+import { api } from '@/lib/api';
+import { getStoredToken } from '@/lib/supabase';
+
+// Pendientes para el badge del sidebar. Nunca rompe la navegación.
+async function rootLoader() {
+  const token = getStoredToken();
+  if (!token) return { dueTotal: 0 };
+  try {
+    return { dueTotal: (await api.dueCards(token)).length };
+  } catch {
+    return { dueTotal: 0 };
+  }
+}
 
 // /login va fuera del Layout: sin sidebar ni top-bar, solo el formulario centrado.
 export const router = createBrowserRouter([
@@ -17,6 +30,7 @@ export const router = createBrowserRouter([
   },
   {
     element: <Layout />,
+    loader: rootLoader,
     errorElement: <RouteError />,
     children: [
       {

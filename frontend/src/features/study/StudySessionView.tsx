@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, Plus, RotateCw, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -41,20 +43,51 @@ export function StudySessionView({ initialCards, token }: { initialCards: DueCar
   }
 
   if (!current) {
+    const total = done.ok + done.fail;
+    const allDoneEmpty = initialCards.length === 0;
     return (
       <Card className="mx-auto max-w-xl">
         <CardContent>
-          <div className="grid gap-3 py-6 text-center">
-            <p className="text-lg font-bold">Sesión completa</p>
-            <p className="text-sm text-slate-500">
-              Aciertos: {done.ok} · Fallos: {done.fail}
-              {initialCards.length === 0 && ' · No había tarjetas pendientes.'}
-            </p>
-            {cards.length > 0 && (
-              <Button variant="secondary" onClick={() => handleRestart(cards)}>
-                Repasar de nuevo
-              </Button>
+          <div className="grid gap-4 py-6 text-center">
+            <span className="mx-auto flex size-16 items-center justify-center rounded-full bg-ok-soft text-ok">
+              <Trophy className="size-8" />
+            </span>
+            <div className="grid gap-1">
+              <p className="text-lg font-bold">
+                {allDoneEmpty ? '¡Todo al día!' : '¡Sesión completa!'}
+              </p>
+              <p className="text-sm text-ink-soft">
+                {allDoneEmpty
+                  ? 'No tienes tarjetas pendientes por ahora.'
+                  : `Repasaste ${total} tarjeta${total === 1 ? '' : 's'}.`}
+              </p>
+            </div>
+            {!allDoneEmpty && (
+              <div className="mx-auto flex gap-6 text-sm">
+                <span className="font-semibold text-ok">Aciertos: {done.ok}</span>
+                <span className="font-semibold text-error">Fallos: {done.fail}</span>
+              </div>
             )}
+            <div className="flex flex-wrap justify-center gap-2 pt-1">
+              <Link to="/">
+                <Button variant="secondary">
+                  <ArrowLeft className="size-4" />
+                  Ir a Mazos
+                </Button>
+              </Link>
+              <Link to="/cards">
+                <Button>
+                  <Plus className="size-4" />
+                  Agregar tarjetas
+                </Button>
+              </Link>
+              {cards.length > 0 && (
+                <Button variant="outline" onClick={() => handleRestart(cards)}>
+                  <RotateCw className="size-4" />
+                  Repasar de nuevo
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -63,7 +96,7 @@ export function StudySessionView({ initialCards, token }: { initialCards: DueCar
 
   return (
     <div className="grid gap-6">
-      <p className="text-center text-sm text-slate-500">
+      <p className="text-center text-sm text-ink-soft">
         Tarjeta {index + 1} de {cards.length}
       </p>
       <Flashcard card={current} flipped={flipped} onFlip={() => setFlipped((f) => !f)} />
