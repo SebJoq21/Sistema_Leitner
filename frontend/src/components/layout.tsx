@@ -3,6 +3,7 @@ import { Link, Outlet, useLoaderData, useLocation, useNavigate, useNavigation } 
 import { Menu, X } from 'lucide-react';
 import { Skeleton, SkeletonLine } from './ui/skeleton';
 import { SidebarBody } from './Sidebar';
+import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '@/features/auth/AuthContext';
 
 function DashboardSkeleton() {
@@ -108,6 +109,9 @@ export function Layout() {
           <Link to="/" className="text-base font-extrabold tracking-tight text-white">
             Leitner
           </Link>
+          <div className="ml-auto">
+            <ThemeToggle className="py-1.5" />
+          </div>
         </div>
       </header>
 

@@ -1,7 +1,9 @@
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Layers, MoreHorizontal, Pencil, Play, Plus, Trash2 } from 'lucide-react';
+import { Clock, Layers, MoreHorizontal, Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
@@ -13,6 +15,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { deckIcon, formatRelative } from '@/lib/leitner';
 import type { Deck } from '@/lib/api';
+
+type Order = 'nombre' | 'progreso' | 'pendientes';
+
+const selectClass =
+  'h-10 rounded-xl border border-slate-200 bg-primary-bg px-3 text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900';
 
 export function DeckList({
   decks,
@@ -27,6 +34,30 @@ export function DeckList({
   onCreateDeck?: () => void;
   onEdit?: (deck: Deck) => void;
 }) {
+  const [search, setSearch] = useState('');
+  const [order, setOrder] = useState<Order>('nombre');
+
+  const visible = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    const list = decks.filter((deck) => {
+      if (!s) return true;
+      return (
+        deck.nombre.toLowerCase().includes(s) ||
+        (deck.descripcion?.toLowerCase().includes(s) ?? false) ||
+        (deck.tags?.some((tag) => tag.toLowerCase().includes(s)) ?? false)
+      );
+    });
+    return [...list].sort((a, b) => {
+      if (order === 'progreso') {
+        const pa = (a.total ?? 0) > 0 ? (a.dominadas ?? 0) / (a.total ?? 1) : 0;
+        const pb = (b.total ?? 0) > 0 ? (b.dominadas ?? 0) / (b.total ?? 1) : 0;
+        return pb - pa;
+      }
+      if (order === 'pendientes') return (b.pendientes ?? 0) - (a.pendientes ?? 0);
+      return a.nombre.localeCompare(b.nombre, 'es');
+    });
+  }, [decks, search, order]);
+
   if (decks.length === 0) {
     return (
       <EmptyState
@@ -46,105 +77,153 @@ export function DeckList({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-      {decks.map((deck) => {
-        const total = deck.total ?? deck._count?.cards ?? 0;
-        const pend = deck.pendientes ?? 0;
-        const dom = deck.dominadas ?? 0;
-        const pct = total > 0 ? Math.round((dom / total) * 100) : 0;
-        const color = deck.color ?? '#1D4ED8';
-        const Icon = deckIcon(deck.icon);
-        const hasDue = pend > 0;
+    <div className="grid gap-4">
+      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_auto]">
+        <Input
+          label="Buscar mazo"
+          placeholder="Nombre, descripción o etiqueta…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="grid gap-1.5">
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Ordenar por</label>
+          <select
+            className={selectClass}
+            value={order}
+            onChange={(e) => setOrder(e.target.value as Order)}
+          >
+            <option value="nombre">Nombre (A-Z)</option>
+            <option value="progreso">Más dominados</option>
+            <option value="pendientes">Más pendientes</option>
+          </select>
+        </div>
+      </div>
 
-        return (
-          <Card key={deck.id} className="flex flex-col transition-shadow hover:shadow-md">
-            <CardHeader className="flex items-center gap-3 pb-0">
-              <span
-                className="flex size-11 shrink-0 items-center justify-center rounded-xl text-white"
-                style={{ backgroundColor: color }}
-                aria-hidden
-              >
-                <Icon className="size-6" />
-              </span>
-              <div className="min-w-0">
-                <CardTitle className="truncate">{deck.nombre}</CardTitle>
-                <p className="text-xs text-ink-soft">
-                  {deck.ultimoEstudio ? `Estudiado ${formatRelative(deck.ultimoEstudio).toLowerCase()}` : 'Sin estudiar aún'}
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-1 flex-col gap-3">
-              {deck.descripcion && <p className="line-clamp-2 text-sm text-ink-soft">{deck.descripcion}</p>}
+      {visible.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title="Ningún mazo coincide"
+          description={`No hay mazos que contengan "${search.trim()}".`}
+          action={
+            <Button variant="secondary" onClick={() => setSearch('')}>
+              <X className="size-4" />
+              Limpiar búsqueda
+            </Button>
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {visible.map((deck) => {
+            const total = deck.total ?? deck._count?.cards ?? 0;
+            const pend = deck.pendientes ?? 0;
+            const dom = deck.dominadas ?? 0;
+            const pct = total > 0 ? Math.round((dom / total) * 100) : 0;
+            const color = deck.color ?? '#1D4ED8';
+            const Icon = deckIcon(deck.icon);
+            const hasDue = pend > 0;
 
-              <div className="grid gap-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-ink-soft">
-                    {total} tarjeta{total === 1 ? '' : 's'} · {dom} dominada{dom === 1 ? '' : 's'}
+            return (
+              <Card key={deck.id} className="flex flex-col transition-shadow hover:shadow-md">
+                <CardHeader className="flex items-center gap-3 pb-0">
+                  <span
+                    className="flex size-11 shrink-0 items-center justify-center rounded-xl text-white"
+                    style={{ backgroundColor: color }}
+                    aria-hidden
+                  >
+                    <Icon className="size-6" />
                   </span>
-                  <span className="font-semibold text-ink">{pct}%</span>
-                </div>
-                <Progress
-                  value={pct}
-                  barClassName="bg-teal-500"
-                  label={`Progreso de ${deck.nombre}`}
-                />
-              </div>
+                  <div className="min-w-0">
+                    <CardTitle className="truncate">{deck.nombre}</CardTitle>
+                    <p className="text-xs text-ink-soft">
+                      {deck.ultimoEstudio
+                        ? `Estudiado ${formatRelative(deck.ultimoEstudio).toLowerCase()}`
+                        : 'Sin estudiar aún'}
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex flex-1 flex-col gap-3">
+                  {deck.descripcion && <p className="line-clamp-2 text-sm text-ink-soft">{deck.descripcion}</p>}
 
-              <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
-                {hasDue ? (
-                  <Link to={`/study?deckId=${deck.id}`}>
-                    <Button size="sm">
-                      <Play className="size-4" />
-                      Estudiar ({pend})
-                    </Button>
-                  </Link>
-                ) : (
-                  <Button size="sm" disabled>
-                    <Clock className="size-4" />
-                    Nada pendiente
-                  </Button>
-                )}
-                <Button size="sm" variant="secondary" onClick={() => onAddCard(deck)}>
-                  <Plus className="size-4" />
-                  Tarjeta
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="ml-auto"
-                      aria-label={`Opciones de ${deck.nombre}`}
-                    >
-                      <MoreHorizontal className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    {onEdit && (
-                      <DropdownMenuItem onSelect={() => onEdit(deck)}>
-                        <Pencil className="size-4" />
-                        Editar mazo
-                      </DropdownMenuItem>
+                  {deck.tags && deck.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {deck.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-ink-soft dark:bg-slate-800"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="grid gap-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-ink-soft">
+                        {total} tarjeta{total === 1 ? '' : 's'} · {dom} dominada{dom === 1 ? '' : 's'}
+                      </span>
+                      <span className="font-semibold text-ink">{pct}%</span>
+                    </div>
+                    <Progress value={pct} barClassName="bg-teal-500" label={`Progreso de ${deck.nombre}`} />
+                  </div>
+
+                  <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
+                    {hasDue ? (
+                      <Link to={`/study?deckId=${deck.id}`}>
+                        <Button size="sm">
+                          <Play className="size-4" />
+                          Estudiar ({pend})
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button size="sm" disabled>
+                        <Clock className="size-4" />
+                        Nada pendiente
+                      </Button>
                     )}
-                    <DropdownMenuItem onSelect={() => onAddCard(deck)}>
+                    <Button size="sm" variant="secondary" onClick={() => onAddCard(deck)}>
                       <Plus className="size-4" />
-                      Agregar tarjeta
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-error focus:bg-error-soft focus:text-error"
-                      onSelect={() => onDelete(deck)}
-                    >
-                      <Trash2 className="size-4" />
-                      Borrar mazo
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+                      Tarjeta
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="ml-auto"
+                          aria-label={`Opciones de ${deck.nombre}`}
+                        >
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {onEdit && (
+                          <DropdownMenuItem onSelect={() => onEdit(deck)}>
+                            <Pencil className="size-4" />
+                            Editar mazo
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onSelect={() => onAddCard(deck)}>
+                          <Plus className="size-4" />
+                          Agregar tarjeta
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-error focus:bg-error-soft focus:text-error"
+                          onSelect={() => onDelete(deck)}
+                        >
+                          <Trash2 className="size-4" />
+                          Borrar mazo
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

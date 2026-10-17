@@ -5,6 +5,9 @@ import './index.css';
 import App from './App.tsx';
 import { AuthProvider } from './features/auth/AuthContext.tsx';
 import { TooltipProvider } from './components/ui/tooltip.tsx';
+import { initTheme } from './lib/theme';
+
+initTheme();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

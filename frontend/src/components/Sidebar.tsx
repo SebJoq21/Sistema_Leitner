@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { Archive, GraduationCap, Layers, LogOut, SquareStack, Zap, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from './ThemeToggle';
 
 const items: { to: string; label: string; end: boolean; icon: LucideIcon }[] = [
   { to: '/', label: 'Mazos', end: true, icon: Layers },
@@ -74,6 +75,7 @@ export function SidebarBody({
             <p className="min-w-0 flex-1 truncate text-xs text-slate-300">{email}</p>
           </div>
         )}
+        <ThemeToggle className="w-full" />
         {email ? (
           <button
             type="button"

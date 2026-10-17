@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+/* Modo oscuro por clase (.dark en <html>), no por prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
@@ -40,6 +43,20 @@
   --color-caja-5: #0d9488;
 
   --radius-card: 14px;
+}
+
+/* Overrides de tokens en oscuro: las utilidades basadas en variables se adaptan solas */
+.dark {
+  --color-primary-bg: #0f172a;
+  --color-primary-muted: #020617;
+  --color-surface: #1e293b;
+  --color-border-soft: #334155;
+  --color-ink: #f1f5f9;
+  --color-ink-soft: #94a3b8;
+  --color-ok-soft: #052e16;
+  --color-error-soft: #450a0a;
+  --color-warn-soft: #451a03;
+  --color-info-soft: #172554;
 }
 
 /* Zen Mode: fondo neutro, alto contraste en tarjetas */

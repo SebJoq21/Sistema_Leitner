@@ -1,6 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, redirect, useLoaderData, useRevalidator, type LoaderFunctionArgs } from 'react-router-dom';
-import { Clock, Filter, Pencil, Play, Plus, SquareStack, Trash2, X } from 'lucide-react';
+import {
+  Clock,
+  Download,
+  Filter,
+  Pencil,
+  Play,
+  Plus,
+  SquareStack,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { CajaBadge } from '@/components/ui/badge';
@@ -12,6 +23,7 @@ import { Input, TextArea } from '@/components/ui/input';
 import { api, type Deck, type DueCard } from '@/lib/api';
 import { getStoredToken } from '@/lib/supabase';
 import { formatNextReview } from '@/lib/leitner';
+import { downloadCsv, parseCsv, toCsv } from '@/lib/csv';
 
 export interface CardsData {
   cards: DueCard[];
@@ -72,6 +84,8 @@ export function CardsPage() {
   const [editing, setEditing] = useState<DueCard | null>(null);
   const [confirmCard, setConfirmCard] = useState<DueCard | null>(null);
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasFilters = search.trim() !== '' || deckId !== '' || caja !== '';
 
@@ -141,13 +155,136 @@ export function CardsPage() {
     }
   }
 
+  function handleExport() {
+    const rows: string[][] = [['Pregunta', 'Respuesta', 'Pista', 'Notas', 'Tags', 'Caja']];
+    for (const c of filtered) {
+      rows.push([
+        c.frontText,
+        c.backText,
+        c.hint ?? '',
+        c.notas ?? '',
+        (c.tags ?? []).join('|'),
+        String(c.cajaActual),
+      ]);
+    }
+    const deckName = deckId ? decks.find((d) => d.id === deckId)?.nombre : undefined;
+    const filename = `${(deckName ?? 'tarjetas').replace(/[^\w-]+/g, '_')}.csv`;
+    downloadCsv(filename, toCsv(rows));
+    toast.success(`Exportadas ${filtered.length} tarjetas`);
+  }
+
+  async function handleImportFile(file: File) {
+    setImporting(true);
+    try {
+      const rows = parseCsv(await file.text());
+      if (rows.length === 0) {
+        toast.error('El archivo está vacío');
+        return;
+      }
+      const header = rows[0].map((h) => h.trim().toLowerCase());
+      const hasHeader = header.some((h) =>
+        ['pregunta', 'respuesta', 'front', 'back', 'question', 'answer', 'fronttext', 'backtext'].includes(h),
+      );
+      const pos = (names: string[]) => (hasHeader ? header.findIndex((h) => names.includes(h)) : -1);
+      const iFront = hasHeader ? pos(['pregunta', 'front', 'question', 'fronttext']) : 0;
+      const iBack = hasHeader ? pos(['respuesta', 'back', 'answer', 'backtext']) : 1;
+      const iHint = pos(['pista', 'hint']);
+      const iNotas = pos(['notas', 'notes']);
+      const iTags = pos(['tags', 'etiquetas']);
+      const iCaja = pos(['caja', 'cajaactual', 'box']);
+      const iDeck = pos(['mazo', 'deck']);
+      if (iFront < 0 || iBack < 0) {
+        toast.error('Faltan las columnas de pregunta y respuesta');
+        return;
+      }
+      const body = hasHeader ? rows.slice(1) : rows;
+      const byName = new Map(decks.map((d) => [d.nombre.toLowerCase(), d.id]));
+      let ok = 0;
+      let skipped = 0;
+      for (const row of body) {
+        const front = (row[iFront] ?? '').trim();
+        const back = (row[iBack] ?? '').trim();
+        if (!front || !back) {
+          skipped++;
+          continue;
+        }
+        const deckName = iDeck >= 0 ? (row[iDeck] ?? '').trim().toLowerCase() : '';
+        const targetDeck = deckName ? byName.get(deckName) : deckId || undefined;
+        if (!targetDeck) {
+          skipped++;
+          continue;
+        }
+        const cajaRaw = iCaja >= 0 ? Number(row[iCaja]) : NaN;
+        const cajaInicial = Number.isFinite(cajaRaw)
+          ? Math.min(Math.max(Math.trunc(cajaRaw), 1), 5)
+          : undefined;
+        const tags =
+          iTags >= 0
+            ? (row[iTags] ?? '')
+                .split('|')
+                .map((t) => t.trim())
+                .filter(Boolean)
+            : undefined;
+        try {
+          await api.createCard(token, {
+            deckId: targetDeck,
+            frontText: front,
+            backText: back,
+            hint: iHint >= 0 ? (row[iHint] ?? '').trim() || undefined : undefined,
+            notas: iNotas >= 0 ? (row[iNotas] ?? '').trim() || undefined : undefined,
+            tags,
+            cajaInicial,
+          });
+          ok++;
+        } catch {
+          skipped++;
+        }
+      }
+      if (ok > 0) revalidator.revalidate();
+      if (ok > 0) toast.success(`Importadas ${ok} tarjetas${skipped ? `, ${skipped} omitidas` : ''}`);
+      else toast.warning('No se pudo importar ninguna tarjeta (revisa el mazo destino)');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo importar');
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
   return (
     <div className="grid gap-6">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-secondary-navy dark:text-white">Tarjetas</h1>
-        <p className="text-sm text-ink-soft">
-          {filtered.length} de {cards.length} tarjeta{cards.length === 1 ? '' : 's'}
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-secondary-navy dark:text-white">Tarjetas</h1>
+          <p className="text-sm text-ink-soft">
+            {filtered.length} de {cards.length} tarjeta{cards.length === 1 ? '' : 's'}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
+            <Download className="size-4" />
+            Exportar CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+          >
+            <Upload className="size-4" />
+            {importing ? 'Importando…' : 'Importar CSV'}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleImportFile(file);
+            }}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
