@@ -4,12 +4,12 @@ import { Clock, Play, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DeckList } from '@/features/decks/DeckList';
-import { DeckForm } from '@/features/decks/DeckForm';
-import { CardForm } from '@/features/decks/CardForm';
-import { api, type Deck } from '@/lib/api';
+import { DeckForm, type DeckSubmitValues } from '@/features/decks/DeckForm';
+import { CardForm, type CardSubmitValues } from '@/features/decks/CardForm';
+import { api, type Deck, type DueCard } from '@/lib/api';
 import { getStoredToken } from '@/lib/supabase';
-import type { CardFormValues, DeckFormValues } from '@/schemas';
 
 export interface DashboardData {
   decks: Deck[];
@@ -30,16 +30,19 @@ export function DashboardPage() {
   const revalidator = useRevalidator();
   const [decks, setDecks] = useState<Deck[]>(initialDecks);
   const [deckOpen, setDeckOpen] = useState(false);
+  const [editingDeck, setEditingDeck] = useState<Deck | null>(null);
   const [cardDeck, setCardDeck] = useState<Deck | null>(null);
+  const [confirmDeck, setConfirmDeck] = useState<Deck | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const token = getStoredToken();
+
   function tokenOrThrow(): string {
-    const token = getStoredToken();
     if (!token) throw new Error('Sin sesión. Entra de nuevo.');
     return token;
   }
 
-  async function handleCreateDeck(values: DeckFormValues) {
+  async function handleCreateDeck(values: DeckSubmitValues) {
     setBusy(true);
     try {
       const created = await api.createDeck(tokenOrThrow(), values);
@@ -54,22 +57,82 @@ export function DashboardPage() {
     }
   }
 
-  async function handleDeleteDeck(id: string) {
+  async function handleUpdateDeck(values: DeckSubmitValues) {
+    if (!editingDeck) return;
+    setBusy(true);
     try {
-      await api.deleteDeck(tokenOrThrow(), id);
-      setDecks((d) => d.filter((deck) => deck.id !== id));
-      toast.success('Mazo borrado');
+      const updated = await api.updateDeck(tokenOrThrow(), editingDeck.id, values);
+      setDecks((list) => list.map((d) => (d.id === updated.id ? { ...d, ...updated } : d)));
+      setEditingDeck(null);
+      toast.success('Mazo actualizado');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'No se pudo borrar');
+      toast.error(err instanceof Error ? err.message : 'No se pudo actualizar');
+    } finally {
+      setBusy(false);
     }
   }
 
-  async function handleCreateCard(values: CardFormValues) {
+  async function confirmDeleteDeck() {
+    if (!confirmDeck) return;
+    const deck = confirmDeck;
+    setBusy(true);
+    try {
+      // Snapshot para poder deshacer.
+      let cards: DueCard[] = [];
+      try {
+        cards = await api.listCards(tokenOrThrow(), { deckId: deck.id });
+      } catch {
+        cards = [];
+      }
+      await api.deleteDeck(tokenOrThrow(), deck.id);
+      setDecks((d) => d.filter((x) => x.id !== deck.id));
+      setConfirmDeck(null);
+      toast.success(`Mazo "${deck.nombre}" borrado`, {
+        action: {
+          label: 'Deshacer',
+          onClick: async () => {
+            try {
+              const recreated = await api.createDeck(tokenOrThrow(), {
+                nombre: deck.nombre,
+                descripcion: deck.descripcion,
+                color: deck.color,
+                icon: deck.icon,
+                tags: deck.tags,
+                metaDiaria: deck.metaDiaria,
+              });
+              for (const c of cards) {
+                await api.createCard(tokenOrThrow(), {
+                  deckId: recreated.id,
+                  frontText: c.frontText,
+                  backText: c.backText,
+                  hint: c.hint,
+                  notas: c.notas,
+                  tags: c.tags,
+                  cajaInicial: c.cajaActual,
+                });
+              }
+              toast.success('Mazo restaurado');
+              revalidator.revalidate();
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : 'No se pudo restaurar');
+            }
+          },
+        },
+      });
+      revalidator.revalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo borrar');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleCreateCard(values: CardSubmitValues, opts: { keepOpen: boolean }) {
     setBusy(true);
     try {
       await api.createCard(tokenOrThrow(), values);
-      setCardDeck(null);
-      toast.success('Tarjeta creada en caja 1');
+      if (!opts.keepOpen) setCardDeck(null);
+      toast.success('Tarjeta guardada');
       revalidator.revalidate();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'No se pudo crear la tarjeta');
@@ -113,26 +176,56 @@ export function DashboardPage() {
 
       <DeckList
         decks={decks}
-        onDelete={handleDeleteDeck}
+        onDelete={setConfirmDeck}
         onAddCard={setCardDeck}
         onCreateDeck={() => setDeckOpen(true)}
+        onEdit={setEditingDeck}
       />
 
       <Dialog open={deckOpen} onOpenChange={setDeckOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogTitle>Nuevo mazo</DialogTitle>
           <DeckForm onSubmit={handleCreateDeck} submitting={busy} />
         </DialogContent>
       </Dialog>
 
-      <Dialog open={cardDeck !== null} onOpenChange={(open) => !open && setCardDeck(null)}>
-        <DialogContent>
-          <DialogTitle>Nueva tarjeta</DialogTitle>
-          {cardDeck && (
-            <CardForm deckId={cardDeck.id} deckName={cardDeck.nombre} onSubmit={handleCreateCard} submitting={busy} />
+      <Dialog open={editingDeck !== null} onOpenChange={(open) => !open && setEditingDeck(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogTitle>Editar mazo</DialogTitle>
+          {editingDeck && (
+            <DeckForm initial={editingDeck} onSubmit={handleUpdateDeck} submitting={busy} submitLabel="Guardar cambios" />
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={cardDeck !== null} onOpenChange={(open) => !open && setCardDeck(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogTitle>Nueva tarjeta</DialogTitle>
+          {cardDeck && token && (
+            <CardForm
+              deckId={cardDeck.id}
+              deckName={cardDeck.nombre}
+              token={token}
+              onSubmit={handleCreateCard}
+              submitting={busy}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={confirmDeck !== null}
+        onOpenChange={(open) => !open && setConfirmDeck(null)}
+        title={`¿Borrar "${confirmDeck?.nombre ?? ''}"?`}
+        description={
+          confirmDeck
+            ? `Se borrarán también sus ${confirmDeck.total ?? confirmDeck._count?.cards ?? 0} tarjetas. Esta acción se puede deshacer unos segundos desde el aviso.`
+            : undefined
+        }
+        confirmLabel="Borrar mazo"
+        loading={busy}
+        onConfirm={confirmDeleteDeck}
+      />
     </div>
   );
 }

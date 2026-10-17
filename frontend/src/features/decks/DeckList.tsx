@@ -1,9 +1,16 @@
 import { Link } from 'react-router-dom';
-import { Clock, Layers, Play, Plus, Trash2 } from 'lucide-react';
+import { Clock, Layers, MoreHorizontal, Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { EmptyState } from '@/components/ui/empty-state';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { deckIcon, formatRelative } from '@/lib/leitner';
 import type { Deck } from '@/lib/api';
 
@@ -12,11 +19,13 @@ export function DeckList({
   onDelete,
   onAddCard,
   onCreateDeck,
+  onEdit,
 }: {
   decks: Deck[];
-  onDelete: (id: string) => void;
+  onDelete: (deck: Deck) => void;
   onAddCard: (deck: Deck) => void;
   onCreateDeck?: () => void;
+  onEdit?: (deck: Deck) => void;
 }) {
   if (decks.length === 0) {
     return (
@@ -99,15 +108,38 @@ export function DeckList({
                   <Plus className="size-4" />
                   Tarjeta
                 </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="ml-auto text-ink-soft hover:bg-error-soft hover:text-error"
-                  aria-label={`Borrar mazo ${deck.nombre}`}
-                  onClick={() => onDelete(deck.id)}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="ml-auto"
+                      aria-label={`Opciones de ${deck.nombre}`}
+                    >
+                      <MoreHorizontal className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {onEdit && (
+                      <DropdownMenuItem onSelect={() => onEdit(deck)}>
+                        <Pencil className="size-4" />
+                        Editar mazo
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onSelect={() => onAddCard(deck)}>
+                      <Plus className="size-4" />
+                      Agregar tarjeta
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-error focus:bg-error-soft focus:text-error"
+                      onSelect={() => onDelete(deck)}
+                    >
+                      <Trash2 className="size-4" />
+                      Borrar mazo
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </CardContent>
           </Card>

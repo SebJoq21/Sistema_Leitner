@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { CajaBadge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input, TextArea } from '@/components/ui/input';
@@ -69,6 +70,7 @@ export function CardsPage() {
   const [deckId, setDeckId] = useState('');
   const [caja, setCaja] = useState('');
   const [editing, setEditing] = useState<DueCard | null>(null);
+  const [confirmCard, setConfirmCard] = useState<DueCard | null>(null);
   const [busy, setBusy] = useState(false);
 
   const hasFilters = search.trim() !== '' || deckId !== '' || caja !== '';
@@ -104,12 +106,35 @@ export function CardsPage() {
     }
   }
 
-  async function handleDelete(card: DueCard) {
-    if (!window.confirm(`¿Borrar la tarjeta "${card.frontText.slice(0, 40)}"?`)) return;
+  async function handleDelete() {
+    if (!confirmCard) return;
+    const card = confirmCard;
     try {
       await api.deleteCard(token, card.id);
       setCards((list) => list.filter((c) => c.id !== card.id));
-      toast.success('Tarjeta borrada');
+      setConfirmCard(null);
+      toast.success('Tarjeta borrada', {
+        action: {
+          label: 'Deshacer',
+          onClick: async () => {
+            try {
+              const recreated = await api.createCard(token, {
+                deckId: card.deckId,
+                frontText: card.frontText,
+                backText: card.backText,
+                hint: card.hint,
+                notas: card.notas,
+                tags: card.tags,
+                cajaInicial: card.cajaActual,
+              });
+              setCards((list) => [recreated, ...list]);
+              toast.success('Tarjeta restaurada');
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : 'No se pudo restaurar');
+            }
+          },
+        },
+      });
       revalidator.revalidate();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'No se pudo borrar');
@@ -239,7 +264,7 @@ export function CardsPage() {
                       variant="ghost"
                       className="text-ink-soft hover:bg-error-soft hover:text-error"
                       aria-label="Borrar tarjeta"
-                      onClick={() => handleDelete(card)}
+                      onClick={() => setConfirmCard(card)}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -257,6 +282,15 @@ export function CardsPage() {
           {editing && <EditCardForm card={editing} onSubmit={handleUpdate} submitting={busy} />}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmCard !== null}
+        onOpenChange={(open) => !open && setConfirmCard(null)}
+        title="¿Borrar esta tarjeta?"
+        description={confirmCard ? `"${confirmCard.frontText.slice(0, 80)}"` : undefined}
+        confirmLabel="Borrar tarjeta"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

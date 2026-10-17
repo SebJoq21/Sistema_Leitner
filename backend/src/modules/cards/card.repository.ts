@@ -13,6 +13,7 @@ export interface BoxesStats {
   intervaloDias: number;
   total: number;
   pendientes: number;
+  proximaRevision: Date | null;
 }
 
 const ORDER_MAP: Record<NonNullable<ListCardsQuery['order']>, 'asc' | 'desc'> = {
@@ -56,7 +57,7 @@ export const cardRepository = {
 
   async boxesByUser(userId: string, deckId?: string): Promise<BoxesStats[]> {
     const deckFilter = { userId, ...(deckId ? { id: deckId } : {}) };
-    const [totals, dues, intervalos] = await Promise.all([
+    const [totals, dues, nexts, intervalos] = await Promise.all([
       prisma.card.groupBy({
         by: ['cajaActual'],
         where: { deck: deckFilter },
@@ -67,10 +68,16 @@ export const cardRepository = {
         where: { deck: deckFilter, proximaRevision: { lte: new Date() } },
         _count: { _all: true },
       }),
+      prisma.card.groupBy({
+        by: ['cajaActual'],
+        where: { deck: deckFilter },
+        _min: { proximaRevision: true },
+      }),
       settingsRepository.intervalsFor(userId),
     ]);
     const totalBy = new Map(totals.map((t) => [t.cajaActual, t._count._all]));
     const dueBy = new Map(dues.map((d) => [d.cajaActual, d._count._all]));
+    const nextBy = new Map(nexts.map((n) => [n.cajaActual, n._min.proximaRevision]));
     return Array.from({ length: MAX_CAJA }, (_, i) => {
       const caja = i + 1;
       return {
@@ -78,6 +85,7 @@ export const cardRepository = {
         intervaloDias: intervaloDeCaja(caja, intervalos),
         total: totalBy.get(caja) ?? 0,
         pendientes: dueBy.get(caja) ?? 0,
+        proximaRevision: nextBy.get(caja) ?? null,
       };
     });
   },

@@ -34,6 +34,7 @@ export interface BoxStats {
   intervaloDias: number;
   total: number;
   pendientes: number;
+  proximaRevision: string | null;
 }
 
 export interface Settings {
