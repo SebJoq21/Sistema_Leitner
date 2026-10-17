@@ -11,12 +11,24 @@ datasource db {
 
 // Sincronizado con Supabase Auth (auth.users.id)
 model User {
-  id        String   @id @db.Uuid
-  email     String   @unique
-  createdAt DateTime @default(now())
+  id        String        @id @db.Uuid
+  email     String        @unique
+  createdAt DateTime      @default(now())
   decks     Deck[]
+  settings  UserSettings?
 
   @@map("users")
+}
+
+// Preferencias del usuario (intervalos Leitner configurables, etc.)
+model UserSettings {
+  userId     String   @id @db.Uuid
+  intervalos Int[]    @default([1, 3, 7, 15, 30])
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
 }
 
 model Deck {
@@ -24,6 +36,10 @@ model Deck {
   userId      String   @db.Uuid
   nombre      String
   descripcion String?
+  color       String?  @default("#1D4ED8")
+  icon        String?
+  tags        String[] @default([])
+  metaDiaria  Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -39,6 +55,9 @@ model Card {
   deckId          String   @db.Uuid
   frontText       String
   backText        String
+  hint            String?
+  notas           String?
+  tags            String[] @default([])
   cajaActual      Int      @default(1)
   proximaRevision DateTime @default(now())
   createdAt       DateTime @default(now())

@@ -27,6 +27,6 @@ export const cardService = {
     return cardRepository.removeForUser(cardId, userId);
   },
   review(userId: string, cardId: string, acierto: boolean) {
-    return cardRepository.reviewForUser(cardId, userId, acierto);
+    return cardRepository.reviewForUser(userId, cardId, acierto);
   },
 };
