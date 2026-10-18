@@ -12,20 +12,20 @@ export function Input({ className, label, error, id, ...props }: InputProps) {
   return (
     <div className="grid gap-1.5">
       {label && (
-        <label htmlFor={inputId} className="text-sm font-medium text-slate-700 dark:text-slate-200">
+        <label htmlFor={inputId} className="text-sm font-medium text-ink">
           {label}
         </label>
       )}
       <input
         id={inputId}
         className={cn(
-          'h-10 rounded-xl border border-slate-200 bg-primary-bg px-3 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900',
-          error && 'border-rose-500 focus:border-rose-500 focus:ring-rose-100',
+          'h-10 rounded-xl border border-border-soft bg-primary-bg px-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15',
+          error && 'border-error focus:border-error focus:ring-error/20',
           className,
         )}
         {...props}
       />
-      {error && <p className="text-xs text-rose-500">{error}</p>}
+      {error && <p className="text-xs text-error">{error}</p>}
     </div>
   );
 }
@@ -41,20 +41,20 @@ export function TextArea({ className, label, error, id, ...props }: TextAreaProp
   return (
     <div className="grid gap-1.5">
       {label && (
-        <label htmlFor={inputId} className="text-sm font-medium text-slate-700 dark:text-slate-200">
+        <label htmlFor={inputId} className="text-sm font-medium text-ink">
           {label}
         </label>
       )}
       <textarea
         id={inputId}
         className={cn(
-          'min-h-20 rounded-xl border border-slate-200 bg-primary-bg px-3 py-2 text-sm outline-none transition-colors placeholder:text-slate-400 focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900',
-          error && 'border-rose-500',
+          'min-h-20 rounded-xl border border-border-soft bg-primary-bg px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15',
+          error && 'border-error',
           className,
         )}
         {...props}
       />
-      {error && <p className="text-xs text-rose-500">{error}</p>}
+      {error && <p className="text-xs text-error">{error}</p>}
     </div>
   );
 }

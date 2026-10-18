@@ -8,7 +8,7 @@ export function RouteError() {
   return (
     <div className="grid gap-3 py-16 text-center">
       <h1 className="text-xl font-extrabold">Algo falló</h1>
-      <p className="text-sm text-slate-500">{message}</p>
+      <p className="text-sm text-ink-soft">{message}</p>
       <div>
         <Link to="/">
           <Button>Volver a mazos</Button>

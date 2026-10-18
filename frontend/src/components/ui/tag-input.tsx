@@ -38,17 +38,17 @@ export function TagInput({
 
   return (
     <div className="grid gap-1.5">
-      <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</label>
+      <label className="text-sm font-medium text-ink">{label}</label>
       <div
         className={cn(
-          'flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-200 bg-primary-bg p-1.5 focus-within:border-secondary-blue focus-within:ring-2 focus-within:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900',
-          error && 'border-rose-500',
+          'flex flex-wrap items-center gap-1.5 rounded-xl border border-border-soft bg-primary-bg p-1.5 focus-within:border-secondary-blue focus-within:ring-2 focus-within:ring-secondary-blue/15',
+          error && 'border-error',
         )}
       >
         {value.map((tag) => (
           <span
             key={tag}
-            className="inline-flex items-center gap-1 rounded-full bg-secondary-blue/10 px-2 py-0.5 text-xs font-medium text-secondary-blue dark:text-slate-200"
+            className="inline-flex items-center gap-1 rounded-full bg-azul-100 px-2 py-0.5 text-xs font-medium text-secondary-navy"
           >
             {tag}
             <button
@@ -67,12 +67,12 @@ export function TagInput({
           onKeyDown={handleKey}
           onBlur={commit}
           placeholder={value.length === 0 ? placeholder : ''}
-          className="min-w-24 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-slate-400"
+          className="min-w-24 flex-1 bg-transparent px-1 text-sm text-ink outline-none placeholder:text-ink-soft"
           disabled={value.length >= MAX_TAGS}
         />
       </div>
       {error ? (
-        <p className="text-xs text-rose-500">{error}</p>
+        <p className="text-xs text-error">{error}</p>
       ) : (
         <p className="text-xs text-ink-soft">Enter para agregar · máx. {MAX_TAGS}</p>
       )}

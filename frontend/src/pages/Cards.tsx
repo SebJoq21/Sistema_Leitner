@@ -11,7 +11,6 @@ import {
   Play,
   Plus,
   SquareStack,
-  Tag,
   Trash2,
   Upload,
   X,
@@ -26,7 +25,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Input, TextArea } from '@/components/ui/input';
 import { api, type Deck, type DueCard } from '@/lib/api';
 import { getStoredToken } from '@/lib/supabase';
-import { formatNextReview, isDue } from '@/lib/leitner';
+import { formatNextReview, DECK_COLOR_FALLBACK } from '@/lib/leitner';
 import { downloadCsv, parseCsv, toCsv } from '@/lib/csv';
 
 export interface CardsData {
@@ -38,11 +37,11 @@ export interface CardsData {
 type CardOrder = 'recientes' | 'proxima';
 
 const selectClass =
-  'h-10 rounded-xl border border-slate-200 bg-primary-bg px-3 text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900';
+  'h-10 w-full rounded-xl border border-border-soft bg-primary-bg px-3 text-sm text-ink outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15';
 
 function filterLabel(icon: ReactNode, text: string) {
   return (
-    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+    <label className="flex items-center gap-1.5 text-sm font-medium text-ink">
       {icon}
       {text}
     </label>
@@ -99,8 +98,6 @@ export function CardsPage() {
   const [search, setSearch] = useState('');
   const [deckId, setDeckId] = useState('');
   const [caja, setCaja] = useState('');
-  const [tag, setTag] = useState('');
-  const [pendientes, setPendientes] = useState('');
   const [order, setOrder] = useState<CardOrder>('recientes');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<DueCard | null>(null);
@@ -111,21 +108,12 @@ export function CardsPage() {
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const hasFilters =
-    search.trim() !== '' || deckId !== '' || caja !== '' || tag !== '' || pendientes !== '';
-
-  const allTags = useMemo(() => {
-    const set = new Set<string>();
-    for (const c of cards) for (const t of c.tags ?? []) set.add(t);
-    return [...set].sort((a, b) => a.localeCompare(b, 'es'));
-  }, [cards]);
+  const hasFilters = search.trim() !== '' || deckId !== '' || caja !== '';
 
   function clearFilters() {
     setSearch('');
     setDeckId('');
     setCaja('');
-    setTag('');
-    setPendientes('');
   }
 
   const filtered = useMemo(() => {
@@ -133,9 +121,6 @@ export function CardsPage() {
     const list = cards.filter((c) => {
       if (deckId && c.deckId !== deckId) return false;
       if (caja && c.cajaActual !== Number(caja)) return false;
-      if (tag && !(c.tags ?? []).includes(tag)) return false;
-      if (pendientes === 'pendientes' && !isDue(c.proximaRevision)) return false;
-      if (pendientes === 'alDia' && isDue(c.proximaRevision)) return false;
       if (s && !c.frontText.toLowerCase().includes(s) && !c.backText.toLowerCase().includes(s)) return false;
       return true;
     });
@@ -147,7 +132,7 @@ export function CardsPage() {
       const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return tb - ta;
     });
-  }, [cards, search, deckId, caja, tag, pendientes, order]);
+  }, [cards, search, deckId, caja, order]);
 
   const selectedIds = useMemo(() => filtered.filter((c) => selected.has(c.id)).map((c) => c.id), [filtered, selected]);
   const allSelected = filtered.length > 0 && selectedIds.length === filtered.length;
@@ -387,13 +372,56 @@ export function CardsPage() {
 
   return (
     <div className="grid gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-end gap-x-3 gap-y-4">
+        <div className="mr-auto">
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary-navy dark:text-white">Tarjetas</h1>
           <p className="text-sm text-ink-soft">
             {filtered.length} de {cards.length} tarjeta{cards.length === 1 ? '' : 's'}
           </p>
         </div>
+
+        <div className="w-52 min-w-0">
+          <Input
+            label="Buscar"
+            placeholder="Pregunta o respuesta…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="grid w-40 min-w-0 gap-1.5">
+          {filterLabel(<FolderInput className="size-4 text-ink-soft" />, 'Mazo')}
+          <select className={selectClass} value={deckId} onChange={(e) => setDeckId(e.target.value)}>
+            <option value="">Todos</option>
+            {decks.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid w-32 min-w-0 gap-1.5">
+          {filterLabel(<SquareStack className="size-4 text-ink-soft" />, 'Caja')}
+          <select className={selectClass} value={caja} onChange={(e) => setCaja(e.target.value)}>
+            <option value="">Todas</option>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>
+                Caja {n}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid w-44 min-w-0 gap-1.5">
+          {filterLabel(<ArrowUpDown className="size-4 text-ink-soft" />, 'Ordenar por')}
+          <select
+            className={selectClass}
+            value={order}
+            onChange={(e) => setOrder(e.target.value as CardOrder)}
+          >
+            <option value="recientes">Creación (recientes)</option>
+            <option value="proxima">Próxima revisión</option>
+          </select>
+        </div>
+
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
             <Download className="size-4" />
@@ -421,67 +449,6 @@ export function CardsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Input
-          label="Buscar"
-          placeholder="Pregunta o respuesta…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <div className="grid gap-1.5">
-          {filterLabel(<FolderInput className="size-4 text-ink-soft" />, 'Mazo')}
-          <select className={selectClass} value={deckId} onChange={(e) => setDeckId(e.target.value)}>
-            <option value="">Todos</option>
-            {decks.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid gap-1.5">
-          {filterLabel(<SquareStack className="size-4 text-ink-soft" />, 'Caja')}
-          <select className={selectClass} value={caja} onChange={(e) => setCaja(e.target.value)}>
-            <option value="">Todas</option>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={n}>
-                Caja {n}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid gap-1.5">
-          {filterLabel(<Tag className="size-4 text-ink-soft" />, 'Etiqueta')}
-          <select className={selectClass} value={tag} onChange={(e) => setTag(e.target.value)}>
-            <option value="">Todas</option>
-            {allTags.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid gap-1.5">
-          {filterLabel(<Clock className="size-4 text-ink-soft" />, 'Repaso')}
-          <select className={selectClass} value={pendientes} onChange={(e) => setPendientes(e.target.value)}>
-            <option value="">Todas</option>
-            <option value="pendientes">Pendientes hoy</option>
-            <option value="alDia">Al día</option>
-          </select>
-        </div>
-        <div className="grid gap-1.5">
-          {filterLabel(<ArrowUpDown className="size-4 text-ink-soft" />, 'Ordenar por')}
-          <select
-            className={selectClass}
-            value={order}
-            onChange={(e) => setOrder(e.target.value as CardOrder)}
-          >
-            <option value="recientes">Creación (recientes)</option>
-            <option value="proxima">Próxima revisión</option>
-          </select>
-        </div>
-      </div>
-
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="outline" size="sm" onClick={clearFilters} disabled={!hasFilters}>
           <X className="size-4" />
@@ -491,7 +458,7 @@ export function CardsPage() {
           <label className="flex items-center gap-2 text-sm text-ink-soft">
             <input
               type="checkbox"
-              className="size-4 accent-[#1d4ed8]"
+              className="size-4 accent-[#3481BC]"
               checked={allSelected}
               onChange={toggleAll}
             />
@@ -501,8 +468,8 @@ export function CardsPage() {
       </div>
 
       {selected.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-secondary-blue/30 bg-info-soft px-3 py-2 dark:bg-slate-800">
-          <span className="flex items-center gap-1.5 text-sm font-semibold text-info">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border-soft bg-azul-100 px-3 py-2">
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-secondary-navy">
             <ListChecks className="size-4" />
             {selected.size} seleccionada{selected.size === 1 ? '' : 's'}
           </span>
@@ -569,7 +536,7 @@ export function CardsPage() {
                 <div className="flex items-start gap-3">
                   <input
                     type="checkbox"
-                    className="mt-1 size-4 shrink-0 accent-[#1d4ed8]"
+                    className="mt-1 size-4 shrink-0 accent-[#3481BC]"
                     checked={selected.has(card.id)}
                     onChange={() => toggleSelect(card.id)}
                     aria-label={`Seleccionar "${card.frontText.slice(0, 40)}"`}
@@ -591,7 +558,7 @@ export function CardsPage() {
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft">
                       <span
                         className="size-2.5 rounded-full"
-                        style={{ backgroundColor: card.deck.color ?? '#1D4ED8' }}
+                        style={{ backgroundColor: card.deck.color ?? DECK_COLOR_FALLBACK }}
                         aria-hidden
                       />
                       {card.deck.nombre}
@@ -600,7 +567,7 @@ export function CardsPage() {
                   {(card.tags ?? []).map((t) => (
                     <span
                       key={t}
-                      className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-ink-soft dark:bg-slate-800"
+                      className="rounded-full bg-azul-100 px-2 py-0.5 text-[11px] font-medium text-secondary-navy"
                     >
                       {t}
                     </span>
@@ -610,19 +577,31 @@ export function CardsPage() {
                     {formatNextReview(card.proximaRevision)}
                   </span>
                   <span className="ml-auto flex items-center gap-1">
-                    <Button size="icon" variant="ghost" aria-label="Editar tarjeta" onClick={() => setEditing(card)}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label="Editar tarjeta"
+                      title="Editar"
+                      className="transition-transform hover:-translate-y-px hover:bg-editar-soft hover:text-editar focus-visible:bg-editar-soft focus-visible:text-editar"
+                      onClick={() => setEditing(card)}
+                    >
                       <Pencil className="size-4" />
                     </Button>
-                    <Link to={`/study?deckId=${card.deckId}`} aria-label="Estudiar este mazo">
-                      <Button size="icon" variant="ghost">
+                    <Link to={`/study?deckId=${card.deckId}`} aria-label="Estudiar este mazo" title="Estudiar">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="transition-transform hover:-translate-y-px hover:bg-ok-soft hover:text-ok focus-visible:bg-ok-soft focus-visible:text-ok"
+                      >
                         <Play className="size-4" />
                       </Button>
                     </Link>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="text-ink-soft hover:bg-error-soft hover:text-error"
+                      className="transition-transform hover:-translate-y-px hover:bg-error-soft hover:text-error focus-visible:bg-error-soft focus-visible:text-error"
                       aria-label="Borrar tarjeta"
+                      title="Borrar"
                       onClick={() => setConfirmCard(card)}
                     >
                       <Trash2 className="size-4" />

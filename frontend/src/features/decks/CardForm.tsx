@@ -21,7 +21,7 @@ export interface CardSubmitValues {
 }
 
 const selectClass =
-  'h-10 rounded-xl border border-slate-200 bg-primary-bg px-3 text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900';
+  'h-10 rounded-xl border border-border-soft bg-primary-bg px-3 text-sm text-ink outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15';
 
 export function CardForm({
   deckId,
@@ -113,7 +113,7 @@ export function CardForm({
   return (
     <form className="grid gap-4" onSubmit={(e) => e.preventDefault()}>
       {/* Vista previa */}
-      <div className="grid gap-2 rounded-xl border border-slate-200 bg-primary-muted p-3 dark:border-slate-700 dark:bg-slate-900">
+      <div className="grid gap-2 rounded-xl border border-border-soft bg-primary-muted p-3">
         <div className="flex items-center gap-2">
           <CajaBadge caja={cajaInicial} />
           <span className="text-xs text-ink-soft">{effectiveDeckName}</span>
@@ -125,7 +125,7 @@ export function CardForm({
 
       {decks && decks.length > 0 && (
         <div className="grid gap-1.5">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Mazo</label>
+          <label className="text-sm font-medium text-ink">Mazo</label>
           <Controller
             control={control}
             name="deckId"
@@ -215,7 +215,7 @@ export function CardForm({
       />
 
       <div className="grid gap-1.5">
-        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Caja inicial</label>
+        <label className="text-sm font-medium text-ink">Caja inicial</label>
         <select className={selectClass} {...register('cajaInicial')}>
           {[1, 2, 3, 4, 5].map((n) => (
             <option key={n} value={n}>

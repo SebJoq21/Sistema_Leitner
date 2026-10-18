@@ -23,11 +23,11 @@ export function Tooltip({
           side={side}
           sideOffset={6}
           className={cn(
-            'z-50 max-w-xs rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-md',
+            'z-50 max-w-xs rounded-lg bg-tinta px-2.5 py-1.5 text-xs font-medium text-white shadow-md',
           )}
         >
           {content}
-          <TooltipPrimitive.Arrow className="fill-slate-900" />
+          <TooltipPrimitive.Arrow className="fill-tinta" />
         </TooltipPrimitive.Content>
       </TooltipPrimitive.Portal>
     </TooltipPrimitive.Root>

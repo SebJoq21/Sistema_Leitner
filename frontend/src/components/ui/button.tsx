@@ -4,18 +4,18 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-blue focus-visible:ring-offset-1 disabled:pointer-events-none disabled:border-transparent disabled:bg-slate-100 disabled:text-slate-400 disabled:hover:bg-slate-100 [&_svg]:size-4 [&_svg]:shrink-0',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-blue focus-visible:ring-offset-1 disabled:pointer-events-none disabled:border-transparent disabled:bg-azul-100 disabled:text-ink-soft disabled:hover:bg-azul-100 [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        default: 'bg-accent-orange text-white hover:bg-accent-hover',
-        secondary: 'bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-50',
-        success: 'bg-emerald-500 text-white hover:bg-emerald-600',
-        danger: 'bg-rose-500 text-white hover:bg-rose-600',
-        destructive: 'bg-error text-white hover:bg-red-700',
-        outline:
-          'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200',
-        ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
+        default: 'bg-azul-700 text-white hover:bg-tinta',
+        secondary: 'bg-azul-100 text-secondary-navy hover:bg-azul-100/70',
+        success: 'bg-ok text-white hover:brightness-95',
+        danger: 'bg-error text-white hover:brightness-95',
+        destructive: 'bg-error text-white hover:brightness-95',
+        study: 'bg-naranja text-white hover:bg-naranja-hover',
+        outline: 'border border-border-soft bg-surface text-ink hover:bg-primary-muted',
+        ghost: 'text-ink-soft hover:bg-azul-100 hover:text-secondary-navy',
       },
       size: {
         sm: 'h-8 px-3 text-xs',

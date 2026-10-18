@@ -33,7 +33,7 @@ export async function studyLoader({ request }: LoaderFunctionArgs): Promise<Stud
 }
 
 const selectClass =
-  'h-9 rounded-xl border border-slate-200 bg-primary-bg px-2.5 text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900';
+  'h-9 rounded-xl border border-border-soft bg-primary-bg px-2.5 text-sm text-ink outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15';
 
 export function StudySessionPage() {
   const { cards, token, deckId, caja, decks, nextReview } = useLoaderData() as StudyData;

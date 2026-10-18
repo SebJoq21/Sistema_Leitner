@@ -17,7 +17,7 @@ export function DropdownMenuContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          'z-50 min-w-44 overflow-hidden rounded-xl border border-slate-200 bg-surface p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900',
+          'z-50 min-w-44 overflow-hidden rounded-xl border border-border-soft bg-surface p-1 shadow-lg',
           className,
         )}
         {...props}
@@ -33,7 +33,7 @@ export function DropdownMenuItem({
   return (
     <DropdownMenuPrimitive.Item
       className={cn(
-        'flex cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm outline-none transition-colors focus:bg-slate-100 dark:focus:bg-slate-800',
+        'flex cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-ink outline-none transition-colors focus:bg-azul-100',
         className,
       )}
       {...props}
@@ -47,7 +47,7 @@ export function DropdownMenuSeparator({
 }: DropdownMenuPrimitive.DropdownMenuSeparatorProps) {
   return (
     <DropdownMenuPrimitive.Separator
-      className={cn('my-1 h-px bg-slate-100 dark:bg-slate-800', className)}
+      className={cn('my-1 h-px bg-border-soft', className)}
       {...props}
     />
   );

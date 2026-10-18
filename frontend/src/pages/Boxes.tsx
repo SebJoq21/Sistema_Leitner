@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
-import { Link, redirect, useLoaderData, useRevalidator } from 'react-router-dom';
+import { Link, redirect, useLoaderData, useRevalidator, useSearchParams } from 'react-router-dom';
 import { Archive, Check, ChevronRight, Clock, Info, Play, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -63,7 +63,7 @@ function IntervalSettings({
                 max={365}
                 value={v}
                 onChange={(e) => setVals((list) => list.map((x, j) => (j === i ? e.target.value : x)))}
-                className="h-10 w-full rounded-xl border border-slate-200 bg-primary-bg px-2 text-center text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900"
+                className="h-10 w-full rounded-xl border border-border-soft bg-primary-bg px-2 text-center text-sm text-ink outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15"
               />
             </div>
           ))}
@@ -88,6 +88,17 @@ export function BoxesPage() {
   const [intervalos, setIntervalos] = useState<number[]>(initialIntervalos);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('info') === '1') {
+      setInfoOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('info');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const total = boxes.reduce((acc, b) => acc + b.total, 0);
   const dueTotal = boxes.reduce((acc, b) => acc + b.pendientes, 0);
@@ -125,7 +136,11 @@ export function BoxesPage() {
         </Button>
       </div>
 
-      <details className="group rounded-2xl border border-slate-200 bg-surface p-4 dark:border-slate-700 dark:bg-slate-900">
+      <details
+        className="group rounded-2xl border border-border-soft bg-surface p-4"
+        open={infoOpen}
+        onToggle={(e) => setInfoOpen(e.currentTarget.open)}
+      >
         <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-ink">
           <Info className="size-4 text-info" />
           ¿Cómo funciona el sistema Leitner?
@@ -140,7 +155,7 @@ export function BoxesPage() {
       {/* Barra de distribución */}
       {total > 0 && (
         <div className="grid gap-2">
-          <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+          <div className="flex h-3 w-full overflow-hidden rounded-full bg-azul-100">
             {boxes.map((box) =>
               box.total > 0 ? (
                 <div
@@ -174,8 +189,8 @@ export function BoxesPage() {
                 <div className="h-1.5 w-full" style={{ backgroundColor: theme.color }} aria-hidden />
                 <CardHeader className="flex flex-row items-center gap-2.5 pb-1">
                   <span
-                    className="flex size-9 shrink-0 items-center justify-center rounded-lg text-white"
-                    style={{ backgroundColor: theme.color }}
+                    className="flex size-9 shrink-0 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: theme.color, color: theme.onColor }}
                     aria-hidden
                   >
                     <Icon className="size-5" />
@@ -202,7 +217,7 @@ export function BoxesPage() {
                   <div className="mt-auto grid gap-2 pt-1">
                     {hasDue ? (
                       <Link to={`/study?caja=${box.caja}`} className="block">
-                        <Button size="sm" className="w-full">
+                        <Button size="sm" variant="study" className="w-full">
                           <Play className="size-4" />
                           Estudiar caja
                         </Button>
@@ -228,7 +243,7 @@ export function BoxesPage() {
               </Card>
               {i < boxes.length - 1 && (
                 <div className="hidden items-center justify-center lg:flex" aria-hidden>
-                  <ChevronRight className="size-5 text-slate-300" />
+                  <ChevronRight className="size-5 text-ink-soft" />
                 </div>
               )}
             </Fragment>

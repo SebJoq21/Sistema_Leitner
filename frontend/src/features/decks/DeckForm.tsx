@@ -72,7 +72,7 @@ export function DeckForm({
       })}
     >
       {/* Vista previa */}
-      <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-primary-muted p-3 dark:border-slate-700 dark:bg-slate-900">
+      <div className="flex items-center gap-3 rounded-xl border border-border-soft bg-primary-muted p-3">
         <span
           className="flex size-11 shrink-0 items-center justify-center rounded-xl text-white"
           style={{ backgroundColor: color }}
@@ -110,7 +110,7 @@ export function DeckForm({
       </div>
 
       <div className="grid gap-1.5">
-        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Color</label>
+        <label className="text-sm font-medium text-ink">Color</label>
         <Controller
           control={control}
           name="color"
@@ -124,7 +124,7 @@ export function DeckForm({
                   onClick={() => field.onChange(c)}
                   className={cn(
                     'flex size-8 items-center justify-center rounded-full ring-offset-2 transition-transform hover:scale-105',
-                    field.value === c && 'ring-2 ring-slate-900 dark:ring-white',
+                    field.value === c && 'ring-2 ring-azul-700',
                   )}
                   style={{ backgroundColor: c }}
                 >
@@ -137,7 +137,7 @@ export function DeckForm({
       </div>
 
       <div className="grid gap-1.5">
-        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Ícono</label>
+        <label className="text-sm font-medium text-ink">Ícono</label>
         <Controller
           control={control}
           name="icon"
@@ -153,7 +153,7 @@ export function DeckForm({
                     'flex h-9 items-center justify-center rounded-lg border transition-colors',
                     field.value === name
                       ? 'border-secondary-blue bg-secondary-blue/10 text-secondary-blue'
-                      : 'border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800',
+                      : 'border-border-soft text-ink-soft hover:bg-azul-100',
                   )}
                 >
                   <Icon className="size-4" />

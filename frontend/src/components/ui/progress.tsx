@@ -14,7 +14,7 @@ export function Progress({
   const pct = Math.max(0, Math.min(100, Math.round(value)));
   return (
     <div
-      className={cn('h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800', className)}
+      className={cn('h-2 w-full overflow-hidden rounded-full bg-azul-100', className)}
       role="progressbar"
       aria-valuenow={pct}
       aria-valuemin={0}

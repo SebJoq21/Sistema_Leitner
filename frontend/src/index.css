@@ -6,64 +6,141 @@
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  /* 60% dominante: fondos limpios */
+  /* —— Paleta azul (specs/diseño.md) —— */
+  --color-tinta: #1c262b;
+  --color-azul-700: #114e78;
+  --color-azul-500: #3481bc;
+  --color-azul-100: #bce0fa;
+
+  /* 60% dominante: fondos */
   --color-primary-bg: #ffffff;
-  --color-primary-muted: #f8fafc;
+  --color-primary-muted: #f4f9fd;
 
   /* Superficies y texto */
   --color-surface: #ffffff;
-  --color-border-soft: #e2e8f0;
-  --color-ink: #0f172a;
-  --color-ink-soft: #64748b;
+  --color-border-soft: #d5e4f0;
+  --color-ink: #1c262b;
+  --color-ink-soft: #5f7280;
 
-  /* 30% secundario: navegación, títulos, énfasis */
-  --color-secondary-blue: #1d4ed8;
-  --color-secondary-navy: #1e3a8a;
-  --color-secondary-hover: #1e40a8;
+  /* 30% secundario: navegación, títulos, enlaces */
+  --color-secondary-blue: #3481bc;
+  --color-secondary-navy: #114e78;
+  --color-secondary-hover: #1c262b;
 
-  /* 10% acento: SOLO CTAs críticos */
-  --color-accent-orange: #f97316;
-  --color-accent-hover: #ea580c;
+  /* Barra lateral: variables propias, independientes del tema */
+  --color-sb-bg: #114e78;
+  --color-sb-bg-bottom: #0d3f63;
+  --color-sb-text: #e8f1f8;
+  --color-sb-text-strong: #ffffff;
+  --color-sb-active-bg: rgba(188, 224, 250, 0.16);
+  --color-sb-accent: #bce0fa;
+  --color-sb-accent-ink: #114e78;
+  --color-sb-border: rgba(188, 224, 250, 0.18);
+
+  /* 10% acento: solo acción "Estudiar" */
+  --color-naranja: #ea580c;
+  --color-naranja-hover: #c2410c;
 
   /* Semánticos */
-  --color-ok: #16a34a;
-  --color-ok-soft: #dcfce7;
-  --color-error: #dc2626;
-  --color-error-soft: #fee2e2;
-  --color-warn: #d97706;
-  --color-warn-soft: #fef3c7;
-  --color-info: #2563eb;
-  --color-info-soft: #dbeafe;
+  --color-ok: #2e8b57;
+  --color-ok-soft: #ddf2e6;
+  --color-error: #d64545;
+  --color-error-soft: #fce4e4;
+  --color-info: #3481bc;
+  --color-info-soft: #bce0fa;
 
-  /* Colores por caja Leitner (progresión reciente → dominada) */
+  /* Ámbar único: avisos y "editar" comparten familia (mismo color en ambos temas) */
+  --color-aviso: #b7791f;
+  --color-aviso-soft: #fbf0d5;
+  --color-warn: var(--color-aviso);
+  --color-warn-soft: var(--color-aviso-soft);
+  --color-editar: var(--color-aviso);
+  --color-editar-soft: var(--color-aviso-soft);
+
+  /* Colores por caja Leitner (reciente → dominada) */
   --color-caja-1: #ef4444;
+  --color-caja-1-soft: #fee2e2;
   --color-caja-2: #f97316;
-  --color-caja-3: #eab308;
+  --color-caja-2-soft: #ffedd5;
+  --color-caja-3: #b9c25a;
+  --color-caja-3-soft: #eff2d6;
   --color-caja-4: #22c55e;
+  --color-caja-4-soft: #dcfce7;
   --color-caja-5: #0d9488;
+  --color-caja-5-soft: #ccfbf1;
 
   --radius-card: 14px;
 }
 
 /* Overrides de tokens en oscuro: las utilidades basadas en variables se adaptan solas */
 .dark {
-  --color-primary-bg: #0f172a;
-  --color-primary-muted: #020617;
-  --color-surface: #1e293b;
-  --color-border-soft: #334155;
-  --color-ink: #f1f5f9;
-  --color-ink-soft: #94a3b8;
-  --color-ok-soft: #052e16;
-  --color-error-soft: #450a0a;
-  --color-warn-soft: #451a03;
-  --color-info-soft: #172554;
+  --color-primary-bg: #243239;
+  --color-primary-muted: #11181c;
+  --color-surface: #1b262c;
+  --color-border-soft: #33444d;
+  --color-ink: #e8f1f8;
+  --color-ink-soft: #9fb4c2;
+
+  --color-secondary-navy: #e8f1f8;
+  --color-secondary-blue: #5ba3db;
+  --color-azul-500: #5ba3db;
+  --color-azul-100: #2b4558;
+
+  --color-naranja: #f26a1b;
+
+  --color-ok: #4ade80;
+  --color-ok-soft: #1f3529;
+  --color-error: #f87171;
+  --color-error-soft: #3a2323;
+  --color-info-soft: #253a4a;
+
+  /* Ámbar unificado también en oscuro */
+  --color-aviso: #fbbf24;
+  --color-aviso-soft: #3a3220;
+
+  /* La barra lateral solo se separa del contenido con un azul más oscuro */
+  --color-sb-bg: #0d3350;
+  --color-sb-bg-bottom: #0a2a44;
+
+  --color-caja-1-soft: #3a2323;
+  --color-caja-2-soft: #3a2c1e;
+  --color-caja-3-soft: #33351c;
+  --color-caja-4-soft: #1f3529;
+  --color-caja-5-soft: #123a38;
 }
 
-/* Zen Mode: fondo neutro, alto contraste en tarjetas */
 body {
   font-family: var(--font-sans);
   background-color: var(--color-primary-muted);
   color: var(--color-ink);
+}
+
+/* Barra lateral: degradado vertical + un resplandor arriba-izquierda.
+   Tokens propios, independientes del tema claro/oscuro. */
+.sidebar {
+  background:
+    radial-gradient(120% 60% at 0% 0%, color-mix(in srgb, var(--color-azul-500) 35%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--color-sb-bg), var(--color-sb-bg-bottom));
+  border-right: 1px solid var(--color-sb-border);
+}
+
+/* Etiquetas de grupo del menú lateral */
+.nav-group-label {
+  padding: 16px 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-sb-text) 68%, transparent);
+}
+
+/* Oculta la barra de scroll manteniendo la posibilidad de desplazar */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 /* Flip 3D para StudyCard (spec §2.5: rotate-y-180 duration-500) */

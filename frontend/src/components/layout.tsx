@@ -4,7 +4,10 @@ import { Menu, X } from 'lucide-react';
 import { Skeleton, SkeletonLine } from './ui/skeleton';
 import { SidebarBody } from './Sidebar';
 import { ThemeToggle } from './ThemeToggle';
+import { UserMenu } from './UserMenu';
 import { useAuth } from '@/features/auth/AuthContext';
+import { getStoredCollapsed, setStoredCollapsed } from '@/lib/sidebar';
+import type { StatsSummary } from '@/lib/api';
 
 function DashboardSkeleton() {
   return (
@@ -21,7 +24,7 @@ function DashboardSkeleton() {
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-900">
+          <div key={i} className="grid gap-3 rounded-2xl border border-border-soft bg-surface p-6">
             <SkeletonLine className="h-5 w-2/3" />
             <SkeletonLine className="w-full" />
             <SkeletonLine className="w-1/3" />
@@ -78,10 +81,20 @@ export function Layout() {
   const navigate = useNavigate();
   const navigation = useNavigation();
   const location = useLocation();
-  const rootData = useLoaderData() as { dueTotal?: number } | undefined;
+  const rootData = useLoaderData() as { dueTotal?: number; stats?: StatsSummary | null } | undefined;
   const dueCount = rootData?.dueTotal ?? 0;
+  const rachaDias = rootData?.stats?.rachaDias ?? 0;
+  const repasadosHoy = rootData?.stats?.repasadosHoy ?? 0;
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(getStoredCollapsed);
   const isLoading = navigation.state !== 'idle';
+
+  function handleToggleCollapse() {
+    setCollapsed((prev) => {
+      setStoredCollapsed(!prev);
+      return !prev;
+    });
+  }
 
   async function handleSignOut() {
     await signOut();
@@ -93,54 +106,87 @@ export function Layout() {
     setDrawerOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (!drawerOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setDrawerOpen(false);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [drawerOpen]);
+
   return (
-    <div className="min-h-screen bg-primary-muted text-slate-900 dark:bg-slate-950 dark:text-slate-50">
+    <div className="min-h-screen bg-primary-muted text-ink">
       {/* Top bar solo móvil: el sidebar vive en drawer */}
-      <header className="sticky top-0 z-40 bg-secondary-navy text-white md:hidden dark:bg-slate-950">
+      <header className="sticky top-0 z-40 bg-sb-bg text-sb-text-strong md:hidden">
         <div className="flex h-14 items-center gap-3 px-4">
           <button
             type="button"
             aria-label="Abrir menú"
+            title="Abrir menú"
             onClick={() => setDrawerOpen(true)}
-            className="rounded-xl border border-white/20 p-2 leading-none hover:bg-white/10"
+            className="rounded-xl border border-sb-accent/25 p-2 leading-none hover:bg-sb-accent/10"
           >
             <Menu className="size-5" />
           </button>
-          <Link to="/" className="text-base font-extrabold tracking-tight text-white">
+          <Link to="/" className="text-base font-extrabold tracking-tight text-sb-text-strong">
             Leitner
           </Link>
-          <div className="ml-auto">
-            <ThemeToggle className="py-1.5" />
-          </div>
         </div>
       </header>
 
       {/* Sidebar fijo en desktop */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 bg-secondary-navy md:block dark:bg-slate-950">
-        <SidebarBody email={user?.email} dueCount={dueCount} onSignOut={handleSignOut} />
+      <aside
+        className={`sidebar scrollbar-none fixed inset-y-0 left-0 z-30 hidden overflow-y-auto transition-[width] duration-200 motion-reduce:transition-none md:block ${
+          collapsed ? 'w-16' : 'w-60'
+        }`}
+      >
+        <SidebarBody
+          collapsed={collapsed}
+          onToggleCollapse={handleToggleCollapse}
+          dueCount={dueCount}
+          repasadosHoy={repasadosHoy}
+          rachaDias={rachaDias}
+        />
       </aside>
 
       {/* Drawer móvil */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-slate-950/50" onClick={() => setDrawerOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-64 bg-secondary-navy shadow-xl dark:bg-slate-950">
+          <div className="absolute inset-0 bg-tinta/60" onClick={() => setDrawerOpen(false)} />
+          <aside className="sidebar scrollbar-none absolute inset-y-0 left-0 w-64 overflow-y-auto shadow-xl">
             <div className="flex justify-end p-2">
               <button
                 type="button"
                 aria-label="Cerrar menú"
+                title="Cerrar menú"
                 onClick={() => setDrawerOpen(false)}
-                className="rounded-xl p-2 leading-none text-white hover:bg-white/10"
+                className="rounded-xl p-2 leading-none text-sb-text-strong hover:bg-sb-accent/10"
               >
                 <X className="size-5" />
               </button>
             </div>
-            <SidebarBody email={user?.email} dueCount={dueCount} onSignOut={handleSignOut} />
+            <SidebarBody
+              dueCount={dueCount}
+              repasadosHoy={repasadosHoy}
+              rachaDias={rachaDias}
+              onNavigate={() => setDrawerOpen(false)}
+            />
           </aside>
         </div>
       )}
 
-      <div className="md:pl-60">
+      <div
+        className={`transition-[padding] duration-200 motion-reduce:transition-none ${
+          collapsed ? 'md:pl-16' : 'md:pl-60'
+        }`}
+      >
+        {/* Topbar de contenido: tema + usuario */}
+        <header className="sticky top-14 z-20 flex h-14 items-center justify-end gap-2 border-b border-border-soft bg-surface/88 px-6 backdrop-blur md:top-0">
+          <ThemeToggle />
+          <UserMenu email={user?.email} onSignOut={handleSignOut} />
+        </header>
+
         <main className="mx-auto max-w-5xl px-4 py-8">
           {isLoading ? <PendingContent pathname={location.pathname} /> : <Outlet />}
         </main>

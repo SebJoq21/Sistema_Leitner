@@ -44,6 +44,15 @@ export interface Settings {
   intervalos: number[];
 }
 
+export interface StatsSummary {
+  totalTarjetas: number;
+  dominadas: number;
+  pendientes: number;
+  progresoGeneral: number;
+  rachaDias: number;
+  repasadosHoy: number;
+}
+
 export interface CardFilters {
   deckId?: string;
   caja?: number;
@@ -128,6 +137,7 @@ export const api = {
     return request<DueCard[]>(`/api/v1/cards${suffix}`, token);
   },
   boxesStats: (token: string) => request<BoxStats[]>('/api/v1/cards/boxes', token),
+  stats: (token: string) => request<StatsSummary>('/api/v1/stats', token),
   updateCard: (
     token: string,
     id: string,

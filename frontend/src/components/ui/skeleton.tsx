@@ -4,7 +4,7 @@ export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivEl
   return (
     <div
       aria-hidden
-      className={cn('animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800', className)}
+      className={cn('animate-pulse rounded-2xl bg-azul-100', className)}
       {...props}
     />
   );
@@ -14,7 +14,7 @@ export function SkeletonLine({ className, ...props }: React.HTMLAttributes<HTMLD
   return (
     <div
       aria-hidden
-      className={cn('h-3 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800', className)}
+      className={cn('h-3 animate-pulse rounded-full bg-azul-100', className)}
       {...props}
     />
   );

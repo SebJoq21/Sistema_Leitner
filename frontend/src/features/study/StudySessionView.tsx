@@ -145,7 +145,7 @@ export function StudySessionView({
                     <p className="text-2xl font-extrabold text-error">{done.fail}</p>
                     <p className="text-xs font-medium text-error">Fallos</p>
                   </div>
-                  <div className="rounded-xl bg-slate-100 p-3 dark:bg-slate-800">
+                  <div className="rounded-xl bg-azul-100 p-3">
                     <p className="text-2xl font-extrabold text-ink">{pct}%</p>
                     <p className="text-xs font-medium text-ink-soft">Acierto</p>
                   </div>

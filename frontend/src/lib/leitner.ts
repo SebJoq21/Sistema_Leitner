@@ -29,6 +29,8 @@ export interface CajaTheme {
   short: string;
   /** Color base (hex) — para estilos inline dinámicos. */
   color: string;
+  /** Color de texto/ícono legible sobre `color` (hex). */
+  onColor: string;
   /** Clases estáticas Tailwind (deben existir en el bundle). */
   badge: string;
   dot: string;
@@ -39,11 +41,11 @@ export interface CajaTheme {
 
 // Colores estáticos para que Tailwind los incluya en el build.
 export const CAJA_THEME: Record<number, CajaTheme> = {
-  1: { label: 'Caja 1', short: 'Reciente', color: '#EF4444', badge: 'bg-red-100 text-red-700', dot: 'bg-red-500', bar: 'bg-red-500', softBg: 'bg-red-50', icon: Flame },
-  2: { label: 'Caja 2', short: 'Aprendiendo', color: '#F97316', badge: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500', bar: 'bg-orange-500', softBg: 'bg-orange-50', icon: Sprout },
-  3: { label: 'Caja 3', short: 'Consolidando', color: '#EAB308', badge: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-500', bar: 'bg-yellow-500', softBg: 'bg-yellow-50', icon: Leaf },
-  4: { label: 'Caja 4', short: 'Casi dominada', color: '#22C55E', badge: 'bg-green-100 text-green-700', dot: 'bg-green-500', bar: 'bg-green-500', softBg: 'bg-green-50', icon: Trees },
-  5: { label: 'Caja 5', short: 'Dominada', color: '#0D9488', badge: 'bg-teal-100 text-teal-700', dot: 'bg-teal-500', bar: 'bg-teal-500', softBg: 'bg-teal-50', icon: Trophy },
+  1: { label: 'Caja 1', short: 'Reciente', color: '#EF4444', onColor: '#FFFFFF', badge: 'bg-caja-1-soft text-caja-1', dot: 'bg-caja-1', bar: 'bg-caja-1', softBg: 'bg-caja-1-soft', icon: Flame },
+  2: { label: 'Caja 2', short: 'Aprendiendo', color: '#F97316', onColor: '#1C262B', badge: 'bg-caja-2-soft text-caja-2', dot: 'bg-caja-2', bar: 'bg-caja-2', softBg: 'bg-caja-2-soft', icon: Sprout },
+  3: { label: 'Caja 3', short: 'Consolidando', color: '#B9C25A', onColor: '#1C262B', badge: 'bg-caja-3-soft text-caja-3', dot: 'bg-caja-3', bar: 'bg-caja-3', softBg: 'bg-caja-3-soft', icon: Leaf },
+  4: { label: 'Caja 4', short: 'Casi dominada', color: '#22C55E', onColor: '#1C262B', badge: 'bg-caja-4-soft text-caja-4', dot: 'bg-caja-4', bar: 'bg-caja-4', softBg: 'bg-caja-4-soft', icon: Trees },
+  5: { label: 'Caja 5', short: 'Dominada', color: '#0D9488', onColor: '#FFFFFF', badge: 'bg-caja-5-soft text-caja-5', dot: 'bg-caja-5', bar: 'bg-caja-5', softBg: 'bg-caja-5-soft', icon: Trophy },
 };
 
 export function cajaTheme(caja: number): CajaTheme {
@@ -55,16 +57,20 @@ export function intervaloLabel(dias: number): string {
 }
 
 // —— Colores e íconos de mazo ——
+// Set curado: azul/teal/índigo/violeta/rosa/verde/pizarra (media saturación).
+// Se evitan rojo, ámbar y naranja porque ya significan borrar, editar y "Estudiar".
 export const DECK_COLORS = [
-  '#1D4ED8',
-  '#0D9488',
-  '#F97316',
-  '#7C3AED',
-  '#DC2626',
-  '#16A34A',
-  '#DB2777',
-  '#0891B2',
+  '#3481BC', // azul
+  '#0284C7', // celeste
+  '#0D9488', // teal
+  '#6366F1', // índigo
+  '#8B5CF6', // violeta
+  '#D9468F', // rosa
+  '#2E8B57', // verde
+  '#64748B', // gris pizarra
 ];
+
+export const DECK_COLOR_FALLBACK = '#3481BC';
 
 export const DECK_ICON_OPTIONS: { name: string; icon: LucideIcon }[] = [
   { name: 'library', icon: Library },

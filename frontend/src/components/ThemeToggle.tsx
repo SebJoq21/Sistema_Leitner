@@ -21,12 +21,11 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label={dark ? 'Activar modo claro' : 'Activar modo oscuro'}
       title={dark ? 'Modo claro' : 'Modo oscuro'}
       className={cn(
-        'flex items-center justify-center gap-2 rounded-xl border border-white/20 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-white/5',
+        'inline-flex size-9 items-center justify-center rounded-xl border border-border-soft text-ink-soft transition-colors hover:bg-azul-100 hover:text-secondary-navy',
         className,
       )}
     >
       {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-      <span>{dark ? 'Claro' : 'Oscuro'}</span>
     </button>
   );
 }

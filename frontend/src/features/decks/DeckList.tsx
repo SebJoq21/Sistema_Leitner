@@ -13,13 +13,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { deckIcon, formatRelative } from '@/lib/leitner';
+import { DECK_COLOR_FALLBACK, deckIcon, formatRelative } from '@/lib/leitner';
 import type { Deck } from '@/lib/api';
 
 type Order = 'nombre' | 'progreso' | 'pendientes' | 'ultimo';
 
 const selectClass =
-  'h-10 rounded-xl border border-slate-200 bg-primary-bg px-3 text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900';
+  'h-10 rounded-xl border border-border-soft bg-primary-bg px-3 text-sm text-ink outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15';
 
 export function DeckList({
   decks,
@@ -84,14 +84,21 @@ export function DeckList({
   return (
     <div className="grid gap-4">
       <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_auto]">
-        <Input
-          label="Buscar mazo"
-          placeholder="Nombre, descripción o etiqueta…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-soft"
+            aria-hidden
+          />
+          <Input
+            className="pl-9"
+            placeholder="Nombre, descripción o etiquetas…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Buscar mazo"
+          />
+        </div>
         <div className="grid gap-1.5">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Ordenar por</label>
+          <label className="text-sm font-medium text-ink">Ordenar por</label>
           <select
             className={selectClass}
             value={order}
@@ -124,12 +131,16 @@ export function DeckList({
             const pend = deck.pendientes ?? 0;
             const dom = deck.dominadas ?? 0;
             const pct = total > 0 ? Math.round((dom / total) * 100) : 0;
-            const color = deck.color ?? '#1D4ED8';
+            const color = deck.color ?? DECK_COLOR_FALLBACK;
             const Icon = deckIcon(deck.icon);
             const hasDue = pend > 0;
 
             return (
-              <Card key={deck.id} className="flex flex-col transition-shadow hover:shadow-md">
+              <Card
+                key={deck.id}
+                className="flex flex-col border-l-4 transition-shadow hover:shadow-md"
+                style={{ borderLeftColor: color }}
+              >
                 <CardHeader className="flex items-center gap-3 pb-0">
                   <span
                     className="flex size-11 shrink-0 items-center justify-center rounded-xl text-white"
@@ -155,7 +166,7 @@ export function DeckList({
                       {deck.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-ink-soft dark:bg-slate-800"
+                          className="rounded-full bg-azul-100 px-2 py-0.5 text-[11px] font-medium text-secondary-navy"
                         >
                           {tag}
                         </span>
@@ -170,13 +181,13 @@ export function DeckList({
                       </span>
                       <span className="font-semibold text-ink">{pct}%</span>
                     </div>
-                    <Progress value={pct} barClassName="bg-teal-500" label={`Progreso de ${deck.nombre}`} />
+                    <Progress value={pct} barClassName="bg-azul-500" label={`Progreso de ${deck.nombre}`} />
                   </div>
 
                   <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
                     {hasDue ? (
                       <Link to={`/study?deckId=${deck.id}`}>
-                        <Button size="sm">
+                        <Button size="sm" variant="study">
                           <Play className="size-4" />
                           Estudiar ({pend})
                         </Button>

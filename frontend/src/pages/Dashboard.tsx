@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link, useLoaderData, useRevalidator, redirect } from 'react-router-dom';
-import { Clock, Play, Plus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link, useLoaderData, useRevalidator, useSearchParams, redirect } from 'react-router-dom';
+import { Clock, Info, Play, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -8,12 +8,14 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DeckList } from '@/features/decks/DeckList';
 import { DeckForm, type DeckSubmitValues } from '@/features/decks/DeckForm';
 import { CardForm, type CardSubmitValues } from '@/features/decks/CardForm';
-import { api, type Deck, type DueCard } from '@/lib/api';
+import { DashboardStats } from '@/features/stats/DashboardStats';
+import { api, type Deck, type DueCard, type StatsSummary } from '@/lib/api';
 import { getStoredToken } from '@/lib/supabase';
 
 export interface DashboardData {
   decks: Deck[];
   dueTotal: number;
+  stats: StatsSummary;
 }
 
 export async function dashboardLoader(): Promise<DashboardData> {
@@ -21,12 +23,16 @@ export async function dashboardLoader(): Promise<DashboardData> {
   if (!token) {
     throw redirect('/login');
   }
-  const [decks, due] = await Promise.all([api.listDecks(token), api.dueCards(token)]);
-  return { decks, dueTotal: due.length };
+  const [decks, due, stats] = await Promise.all([
+    api.listDecks(token),
+    api.dueCards(token),
+    api.stats(token),
+  ]);
+  return { decks, dueTotal: due.length, stats };
 }
 
 export function DashboardPage() {
-  const { decks: initialDecks, dueTotal } = useLoaderData() as DashboardData;
+  const { decks: initialDecks, dueTotal, stats } = useLoaderData() as DashboardData;
   const revalidator = useRevalidator();
   const [decks, setDecks] = useState<Deck[]>(initialDecks);
   const [deckOpen, setDeckOpen] = useState(false);
@@ -34,8 +40,16 @@ export function DashboardPage() {
   const [cardDeck, setCardDeck] = useState<Deck | null>(null);
   const [confirmDeck, setConfirmDeck] = useState<Deck | null>(null);
   const [busy, setBusy] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const token = getStoredToken();
+
+  useEffect(() => {
+    if (searchParams.get('nuevo') === 'mazo') {
+      setDeckOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   function tokenOrThrow(): string {
     if (!token) throw new Error('Sin sesión. Entra de nuevo.');
@@ -147,7 +161,7 @@ export function DashboardPage() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary-navy dark:text-white">Tus mazos</h1>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-soft">
-            <Clock className="size-4" />
+            <Info className="size-4" />
             {dueTotal > 0
               ? `${dueTotal} tarjeta${dueTotal === 1 ? '' : 's'} pendiente${dueTotal === 1 ? '' : 's'} de repaso hoy`
               : 'Nada pendiente por hoy'}
@@ -156,7 +170,7 @@ export function DashboardPage() {
         <div className="flex gap-2">
           {dueTotal > 0 ? (
             <Link to="/study">
-              <Button>
+              <Button variant="study">
                 <Play className="size-4" />
                 Estudiar ({dueTotal})
               </Button>
@@ -181,6 +195,8 @@ export function DashboardPage() {
         onCreateDeck={() => setDeckOpen(true)}
         onEdit={setEditingDeck}
       />
+
+      <DashboardStats stats={stats} />
 
       <Dialog open={cardDeck !== null} onOpenChange={(open) => !open && setCardDeck(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">

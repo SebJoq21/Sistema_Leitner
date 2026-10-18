@@ -10,14 +10,15 @@ import { RouteError } from '@/pages/RouteError';
 import { api } from '@/lib/api';
 import { getStoredToken } from '@/lib/supabase';
 
-// Pendientes para el badge del sidebar. Nunca rompe la navegación.
+// Pendientes para el badge del sidebar y stats (racha/meta). Nunca rompe la navegación.
 async function rootLoader() {
   const token = getStoredToken();
-  if (!token) return { dueTotal: 0 };
+  if (!token) return { dueTotal: 0, stats: null };
   try {
-    return { dueTotal: (await api.dueCards(token)).length };
+    const [due, stats] = await Promise.all([api.dueCards(token), api.stats(token)]);
+    return { dueTotal: due.length, stats };
   } catch {
-    return { dueTotal: 0 };
+    return { dueTotal: 0, stats: null };
   }
 }
 
