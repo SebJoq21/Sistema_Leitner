@@ -3,6 +3,7 @@ import cors from 'cors';
 import { deckRoutes } from './modules/decks/deck.routes.js';
 import { cardRoutes } from './modules/cards/card.routes.js';
 import { settingsRoutes } from './modules/settings/settings.routes.js';
+import { statsRoutes } from './modules/stats/stats.routes.js';
 import { errorHandler } from './middlewares/validate.js';
 
 export function createApp() {
@@ -16,11 +17,13 @@ export function createApp() {
   app.use('/api/v1/decks', deckRoutes);
   app.use('/api/v1/cards', cardRoutes);
   app.use('/api/v1/settings', settingsRoutes);
+  app.use('/api/v1/stats', statsRoutes);
 
   // Compat con rutas sin versionar (slice mínimo anterior)
   app.use('/api/decks', deckRoutes);
   app.use('/api/cards', cardRoutes);
   app.use('/api/settings', settingsRoutes);
+  app.use('/api/stats', statsRoutes);
 
   app.use((_req, res) => res.status(404).json({ error: 'No encontrado' }));
   app.use(errorHandler);
