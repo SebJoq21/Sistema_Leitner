@@ -26,6 +26,8 @@ export interface DueCard {
   tags?: string[];
   cajaActual: number;
   proximaRevision: string;
+  createdAt?: string;
+  updatedAt?: string;
   deck?: { id: string; nombre: string; color?: string | null; icon?: string | null };
 }
 
@@ -129,7 +131,14 @@ export const api = {
   updateCard: (
     token: string,
     id: string,
-    data: { frontText?: string; backText?: string; hint?: string | null; notas?: string | null; tags?: string[] },
+    data: {
+      deckId?: string;
+      frontText?: string;
+      backText?: string;
+      hint?: string | null;
+      notas?: string | null;
+      tags?: string[];
+    },
   ) => request<DueCard>(`/api/v1/cards/${id}`, token, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteCard: (token: string, id: string) =>
     request<void>(`/api/v1/cards/${id}`, token, { method: 'DELETE' }),

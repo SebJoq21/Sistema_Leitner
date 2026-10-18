@@ -10,6 +10,7 @@ export interface StudyData {
   deckId?: string;
   caja?: number;
   decks: Deck[];
+  nextReview: string | null;
 }
 
 export async function studyLoader({ request }: LoaderFunctionArgs): Promise<StudyData> {
@@ -21,15 +22,21 @@ export async function studyLoader({ request }: LoaderFunctionArgs): Promise<Stud
   const deckId = url.searchParams.get('deckId') ?? undefined;
   const cajaRaw = url.searchParams.get('caja');
   const caja = cajaRaw ? Number(cajaRaw) : undefined;
-  const [cards, decks] = await Promise.all([api.dueCards(token, deckId, caja), api.listDecks(token)]);
-  return { cards, token, deckId, caja, decks };
+  const [cards, decks, upcoming] = await Promise.all([
+    api.dueCards(token, deckId, caja),
+    api.listDecks(token),
+    api.listCards(token, { deckId, caja, order: 'proximaRevision' }),
+  ]);
+  const now = Date.now();
+  const nextReview = upcoming.map((c) => c.proximaRevision).find((d) => new Date(d).getTime() > now) ?? null;
+  return { cards, token, deckId, caja, decks, nextReview };
 }
 
 const selectClass =
   'h-9 rounded-xl border border-slate-200 bg-primary-bg px-2.5 text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900';
 
 export function StudySessionPage() {
-  const { cards, token, deckId, caja, decks } = useLoaderData() as StudyData;
+  const { cards, token, deckId, caja, decks, nextReview } = useLoaderData() as StudyData;
   const navigate = useNavigate();
   const hasFilter = Boolean(deckId || caja);
 
@@ -92,7 +99,7 @@ export function StudySessionPage() {
         </div>
       </div>
 
-      <StudySessionView initialCards={cards} token={token} />
+      <StudySessionView initialCards={cards} token={token} nextReview={nextReview} />
     </div>
   );
 }

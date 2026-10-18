@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { CajaBadge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { api, type DueCard } from '@/lib/api';
-import { cajaTheme } from '@/lib/leitner';
+import { cajaTheme, formatNextReview } from '@/lib/leitner';
 import { Flashcard } from './Flashcard';
 
 function formatDuration(ms: number): string {
@@ -18,7 +18,15 @@ function formatDuration(ms: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export function StudySessionView({ initialCards, token }: { initialCards: DueCard[]; token: string }) {
+export function StudySessionView({
+  initialCards,
+  token,
+  nextReview,
+}: {
+  initialCards: DueCard[];
+  token: string;
+  nextReview?: string | null;
+}) {
   const [cards, setCards] = useState<DueCard[]>(initialCards);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -118,6 +126,12 @@ export function StudySessionView({ initialCards, token }: { initialCards: DueCar
                   ? 'No tienes tarjetas pendientes por ahora.'
                   : `Repasaste ${total} tarjeta${total === 1 ? '' : 's'}.`}
               </p>
+              {allDoneEmpty && nextReview && (
+                <p className="flex items-center justify-center gap-1.5 text-xs text-ink-soft">
+                  <Clock className="size-3.5" />
+                  Próximo repaso: {formatNextReview(nextReview)}
+                </p>
+              )}
             </div>
 
             {!allDoneEmpty && (

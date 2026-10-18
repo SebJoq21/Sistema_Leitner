@@ -11,8 +11,8 @@ const metaDiaria = z
   );
 
 export const deckSchema = z.object({
-  nombre: z.string().min(1, 'El nombre es obligatorio').max(100),
-  descripcion: z.string().max(500).optional(),
+  nombre: z.string().min(1, 'El nombre es obligatorio').max(60),
+  descripcion: z.string().max(200).optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Color inválido').optional(),
   icon: z.string().max(50).optional(),
   tags: z.array(z.string().min(1).max(30)).max(10).optional(),

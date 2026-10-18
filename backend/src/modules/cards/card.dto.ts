@@ -18,6 +18,7 @@ export const reviewCardSchema = z.object({
 
 export const updateCardSchema = z
   .object({
+    deckId: z.string().uuid().optional(),
     frontText: z.string().min(1).max(2000).optional(),
     backText: z.string().min(1).max(2000).optional(),
     hint: z.string().max(500).nullish(),
@@ -26,6 +27,7 @@ export const updateCardSchema = z
   })
   .refine(
     (d) =>
+      d.deckId !== undefined ||
       d.frontText !== undefined ||
       d.backText !== undefined ||
       d.hint !== undefined ||

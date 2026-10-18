@@ -92,10 +92,10 @@ export function DeckForm({
           label="Nombre"
           placeholder="Capitales de Europa"
           error={errors.nombre?.message}
-          maxLength={100}
+          maxLength={60}
           {...register('nombre')}
         />
-        <p className="text-right text-[11px] text-ink-soft">{nombre.length}/100</p>
+        <p className="text-right text-[11px] text-ink-soft">{nombre.length}/60</p>
       </div>
 
       <div className="grid gap-1.5">
@@ -103,10 +103,10 @@ export function DeckForm({
           label="Descripción"
           placeholder="¿De qué trata este mazo? ¿Para qué examen o curso es?"
           error={errors.descripcion?.message}
-          maxLength={500}
+          maxLength={200}
           {...register('descripcion')}
         />
-        <p className="text-right text-[11px] text-ink-soft">{descripcion.length}/500</p>
+        <p className="text-right text-[11px] text-ink-soft">{descripcion.length}/200</p>
       </div>
 
       <div className="grid gap-1.5">

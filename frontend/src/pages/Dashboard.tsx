@@ -182,6 +182,24 @@ export function DashboardPage() {
         onEdit={setEditingDeck}
       />
 
+      <Dialog open={cardDeck !== null} onOpenChange={(open) => !open && setCardDeck(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogTitle>Nueva tarjeta</DialogTitle>
+          {cardDeck && token && (
+            <CardForm
+              deckId={cardDeck.id}
+              deckName={cardDeck.nombre}
+              decks={decks}
+              onRequestCreateDeck={() => setDeckOpen(true)}
+              token={token}
+              onSubmit={handleCreateCard}
+              submitting={busy}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Se registra al final para quedar por encima del diálogo de tarjeta */}
       <Dialog open={deckOpen} onOpenChange={setDeckOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogTitle>Nuevo mazo</DialogTitle>
@@ -193,21 +211,11 @@ export function DashboardPage() {
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogTitle>Editar mazo</DialogTitle>
           {editingDeck && (
-            <DeckForm initial={editingDeck} onSubmit={handleUpdateDeck} submitting={busy} submitLabel="Guardar cambios" />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={cardDeck !== null} onOpenChange={(open) => !open && setCardDeck(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogTitle>Nueva tarjeta</DialogTitle>
-          {cardDeck && token && (
-            <CardForm
-              deckId={cardDeck.id}
-              deckName={cardDeck.nombre}
-              token={token}
-              onSubmit={handleCreateCard}
+            <DeckForm
+              initial={editingDeck}
+              onSubmit={handleUpdateDeck}
               submitting={busy}
+              submitLabel="Guardar cambios"
             />
           )}
         </DialogContent>

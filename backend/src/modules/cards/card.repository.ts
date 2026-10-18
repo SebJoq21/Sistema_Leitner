@@ -117,6 +117,9 @@ export const cardRepository = {
 
   async updateForUser(cardId: string, userId: string, dto: UpdateCardDto) {
     await prisma.card.findFirstOrThrow({ where: { id: cardId, deck: { userId } } });
+    if (dto.deckId) {
+      await prisma.deck.findFirstOrThrow({ where: { id: dto.deckId, userId } });
+    }
     return prisma.card.update({ where: { id: cardId }, data: dto });
   },
 

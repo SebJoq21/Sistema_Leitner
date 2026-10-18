@@ -16,7 +16,7 @@ import {
 import { deckIcon, formatRelative } from '@/lib/leitner';
 import type { Deck } from '@/lib/api';
 
-type Order = 'nombre' | 'progreso' | 'pendientes';
+type Order = 'nombre' | 'progreso' | 'pendientes' | 'ultimo';
 
 const selectClass =
   'h-10 rounded-xl border border-slate-200 bg-primary-bg px-3 text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900';
@@ -54,6 +54,11 @@ export function DeckList({
         return pb - pa;
       }
       if (order === 'pendientes') return (b.pendientes ?? 0) - (a.pendientes ?? 0);
+      if (order === 'ultimo') {
+        const ta = a.ultimoEstudio ? new Date(a.ultimoEstudio).getTime() : 0;
+        const tb = b.ultimoEstudio ? new Date(b.ultimoEstudio).getTime() : 0;
+        return tb - ta;
+      }
       return a.nombre.localeCompare(b.nombre, 'es');
     });
   }, [decks, search, order]);
@@ -95,6 +100,7 @@ export function DeckList({
             <option value="nombre">Nombre (A-Z)</option>
             <option value="progreso">Más dominados</option>
             <option value="pendientes">Más pendientes</option>
+            <option value="ultimo">Último estudio</option>
           </select>
         </div>
       </div>

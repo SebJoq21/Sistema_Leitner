@@ -1,13 +1,17 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, redirect, useLoaderData, useRevalidator, type LoaderFunctionArgs } from 'react-router-dom';
 import {
+  ArrowUpDown,
   Clock,
   Download,
   Filter,
+  FolderInput,
+  ListChecks,
   Pencil,
   Play,
   Plus,
   SquareStack,
+  Tag,
   Trash2,
   Upload,
   X,
@@ -22,13 +26,27 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Input, TextArea } from '@/components/ui/input';
 import { api, type Deck, type DueCard } from '@/lib/api';
 import { getStoredToken } from '@/lib/supabase';
-import { formatNextReview } from '@/lib/leitner';
+import { formatNextReview, isDue } from '@/lib/leitner';
 import { downloadCsv, parseCsv, toCsv } from '@/lib/csv';
 
 export interface CardsData {
   cards: DueCard[];
   decks: Deck[];
   token: string;
+}
+
+type CardOrder = 'recientes' | 'proxima';
+
+const selectClass =
+  'h-10 rounded-xl border border-slate-200 bg-primary-bg px-3 text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900';
+
+function filterLabel(icon: ReactNode, text: string) {
+  return (
+    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+      {icon}
+      {text}
+    </label>
+  );
 }
 
 export async function cardsLoader({ request }: LoaderFunctionArgs): Promise<CardsData> {
@@ -81,29 +99,74 @@ export function CardsPage() {
   const [search, setSearch] = useState('');
   const [deckId, setDeckId] = useState('');
   const [caja, setCaja] = useState('');
+  const [tag, setTag] = useState('');
+  const [pendientes, setPendientes] = useState('');
+  const [order, setOrder] = useState<CardOrder>('recientes');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<DueCard | null>(null);
   const [confirmCard, setConfirmCard] = useState<DueCard | null>(null);
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [moveTarget, setMoveTarget] = useState('');
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const hasFilters = search.trim() !== '' || deckId !== '' || caja !== '';
+  const hasFilters =
+    search.trim() !== '' || deckId !== '' || caja !== '' || tag !== '' || pendientes !== '';
+
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of cards) for (const t of c.tags ?? []) set.add(t);
+    return [...set].sort((a, b) => a.localeCompare(b, 'es'));
+  }, [cards]);
 
   function clearFilters() {
     setSearch('');
     setDeckId('');
     setCaja('');
+    setTag('');
+    setPendientes('');
   }
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
-    return cards.filter((c) => {
+    const list = cards.filter((c) => {
       if (deckId && c.deckId !== deckId) return false;
       if (caja && c.cajaActual !== Number(caja)) return false;
+      if (tag && !(c.tags ?? []).includes(tag)) return false;
+      if (pendientes === 'pendientes' && !isDue(c.proximaRevision)) return false;
+      if (pendientes === 'alDia' && isDue(c.proximaRevision)) return false;
       if (s && !c.frontText.toLowerCase().includes(s) && !c.backText.toLowerCase().includes(s)) return false;
       return true;
     });
-  }, [cards, search, deckId, caja]);
+    return [...list].sort((a, b) => {
+      if (order === 'proxima') {
+        return new Date(a.proximaRevision).getTime() - new Date(b.proximaRevision).getTime();
+      }
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return tb - ta;
+    });
+  }, [cards, search, deckId, caja, tag, pendientes, order]);
+
+  const selectedIds = useMemo(() => filtered.filter((c) => selected.has(c.id)).map((c) => c.id), [filtered, selected]);
+  const allSelected = filtered.length > 0 && selectedIds.length === filtered.length;
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelected((prev) => {
+      if (filtered.length > 0 && filtered.every((c) => prev.has(c.id))) return new Set();
+      return new Set(filtered.map((c) => c.id));
+    });
+  }
 
   async function handleUpdate(values: { frontText: string; backText: string }) {
     if (!editing) return;
@@ -152,6 +215,77 @@ export function CardsPage() {
       revalidator.revalidate();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'No se pudo borrar');
+    }
+  }
+
+  async function handleBulkDelete() {
+    const targets = cards.filter((c) => selected.has(c.id));
+    if (targets.length === 0) return;
+    setBusy(true);
+    try {
+      await Promise.all(targets.map((c) => api.deleteCard(token, c.id)));
+      setCards((list) => list.filter((c) => !selected.has(c.id)));
+      setSelected(new Set());
+      setConfirmBulk(false);
+      toast.success(`${targets.length} tarjetas borradas`, {
+        action: {
+          label: 'Deshacer',
+          onClick: async () => {
+            try {
+              for (const c of targets) {
+                await api.createCard(token, {
+                  deckId: c.deckId,
+                  frontText: c.frontText,
+                  backText: c.backText,
+                  hint: c.hint,
+                  notas: c.notas,
+                  tags: c.tags,
+                  cajaInicial: c.cajaActual,
+                });
+              }
+              toast.success('Tarjetas restauradas');
+              revalidator.revalidate();
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : 'No se pudo restaurar');
+            }
+          },
+        },
+      });
+      revalidator.revalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudieron borrar');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleBulkMove() {
+    if (!moveTarget) return;
+    const target = decks.find((d) => d.id === moveTarget);
+    const targets = cards.filter((c) => selected.has(c.id));
+    if (targets.length === 0) return;
+    setBusy(true);
+    try {
+      await Promise.all(targets.map((c) => api.updateCard(token, c.id, { deckId: moveTarget })));
+      setCards((list) =>
+        list.map((c) =>
+          selected.has(c.id)
+            ? {
+                ...c,
+                deckId: moveTarget,
+                deck: { id: moveTarget, nombre: target?.nombre ?? '', color: target?.color, icon: target?.icon },
+              }
+            : c,
+        ),
+      );
+      setSelected(new Set());
+      setMoveTarget('');
+      toast.success(`${targets.length} tarjetas movidas a "${target?.nombre ?? ''}"`);
+      revalidator.revalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudieron mover');
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -287,20 +421,16 @@ export function CardsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_auto_auto_auto]">
+      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Input
           label="Buscar"
-          placeholder="Texto de la pregunta o respuesta…"
+          placeholder="Pregunta o respuesta…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="grid gap-1.5">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Mazo</label>
-          <select
-            className="h-10 rounded-xl border border-slate-200 bg-primary-bg px-3 text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900"
-            value={deckId}
-            onChange={(e) => setDeckId(e.target.value)}
-          >
+          {filterLabel(<FolderInput className="size-4 text-ink-soft" />, 'Mazo')}
+          <select className={selectClass} value={deckId} onChange={(e) => setDeckId(e.target.value)}>
             <option value="">Todos</option>
             {decks.map((d) => (
               <option key={d.id} value={d.id}>
@@ -310,12 +440,8 @@ export function CardsPage() {
           </select>
         </div>
         <div className="grid gap-1.5">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-200">Caja</label>
-          <select
-            className="h-10 rounded-xl border border-slate-200 bg-primary-bg px-3 text-sm outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15 dark:border-slate-700 dark:bg-slate-900"
-            value={caja}
-            onChange={(e) => setCaja(e.target.value)}
-          >
+          {filterLabel(<SquareStack className="size-4 text-ink-soft" />, 'Caja')}
+          <select className={selectClass} value={caja} onChange={(e) => setCaja(e.target.value)}>
             <option value="">Todas</option>
             {[1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n}>
@@ -324,11 +450,90 @@ export function CardsPage() {
             ))}
           </select>
         </div>
-        <Button variant="outline" onClick={clearFilters} disabled={!hasFilters}>
-          <X className="size-4" />
-          Limpiar
-        </Button>
+        <div className="grid gap-1.5">
+          {filterLabel(<Tag className="size-4 text-ink-soft" />, 'Etiqueta')}
+          <select className={selectClass} value={tag} onChange={(e) => setTag(e.target.value)}>
+            <option value="">Todas</option>
+            {allTags.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid gap-1.5">
+          {filterLabel(<Clock className="size-4 text-ink-soft" />, 'Repaso')}
+          <select className={selectClass} value={pendientes} onChange={(e) => setPendientes(e.target.value)}>
+            <option value="">Todas</option>
+            <option value="pendientes">Pendientes hoy</option>
+            <option value="alDia">Al día</option>
+          </select>
+        </div>
+        <div className="grid gap-1.5">
+          {filterLabel(<ArrowUpDown className="size-4 text-ink-soft" />, 'Ordenar por')}
+          <select
+            className={selectClass}
+            value={order}
+            onChange={(e) => setOrder(e.target.value as CardOrder)}
+          >
+            <option value="recientes">Creación (recientes)</option>
+            <option value="proxima">Próxima revisión</option>
+          </select>
+        </div>
       </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="outline" size="sm" onClick={clearFilters} disabled={!hasFilters}>
+          <X className="size-4" />
+          Limpiar filtros
+        </Button>
+        {filtered.length > 0 && (
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            <input
+              type="checkbox"
+              className="size-4 accent-[#1d4ed8]"
+              checked={allSelected}
+              onChange={toggleAll}
+            />
+            Seleccionar todo
+          </label>
+        )}
+      </div>
+
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-secondary-blue/30 bg-info-soft px-3 py-2 dark:bg-slate-800">
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-info">
+            <ListChecks className="size-4" />
+            {selected.size} seleccionada{selected.size === 1 ? '' : 's'}
+          </span>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <select
+              className={selectClass}
+              value={moveTarget}
+              onChange={(e) => setMoveTarget(e.target.value)}
+              aria-label="Mover a mazo"
+            >
+              <option value="">Mover a…</option>
+              {decks.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.nombre}
+                </option>
+              ))}
+            </select>
+            <Button size="sm" variant="secondary" disabled={!moveTarget || busy} onClick={handleBulkMove}>
+              <FolderInput className="size-4" />
+              Mover
+            </Button>
+            <Button size="sm" variant="danger" disabled={busy} onClick={() => setConfirmBulk(true)}>
+              <Trash2 className="size-4" />
+              Borrar
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {cards.length === 0 ? (
         <EmptyState
@@ -361,14 +566,23 @@ export function CardsPage() {
           {filtered.map((card) => (
             <Card key={card.id} className="transition-shadow hover:shadow-md">
               <CardContent className="grid gap-3 pt-6">
-                <div className="grid gap-3 sm:grid-cols-2 sm:gap-6">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Pregunta</p>
-                    <p className="text-sm font-semibold text-ink">{card.frontText}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Respuesta</p>
-                    <p className="text-sm text-ink-soft">{card.backText}</p>
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1 size-4 shrink-0 accent-[#1d4ed8]"
+                    checked={selected.has(card.id)}
+                    onChange={() => toggleSelect(card.id)}
+                    aria-label={`Seleccionar "${card.frontText.slice(0, 40)}"`}
+                  />
+                  <div className="grid flex-1 gap-3 sm:grid-cols-2 sm:gap-6">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Pregunta</p>
+                      <p className="text-sm font-semibold text-ink">{card.frontText}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Respuesta</p>
+                      <p className="text-sm text-ink-soft">{card.backText}</p>
+                    </div>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -383,6 +597,14 @@ export function CardsPage() {
                       {card.deck.nombre}
                     </span>
                   )}
+                  {(card.tags ?? []).map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-ink-soft dark:bg-slate-800"
+                    >
+                      {t}
+                    </span>
+                  ))}
                   <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
                     <Clock className="size-3.5" />
                     {formatNextReview(card.proximaRevision)}
@@ -427,6 +649,16 @@ export function CardsPage() {
         description={confirmCard ? `"${confirmCard.frontText.slice(0, 80)}"` : undefined}
         confirmLabel="Borrar tarjeta"
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={confirmBulk}
+        onOpenChange={setConfirmBulk}
+        title={`¿Borrar ${selected.size} tarjeta${selected.size === 1 ? '' : 's'}?`}
+        description="Se pueden deshacer unos segundos desde el aviso."
+        confirmLabel="Borrar seleccionadas"
+        loading={busy}
+        onConfirm={handleBulkDelete}
       />
     </div>
   );
