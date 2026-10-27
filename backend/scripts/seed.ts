@@ -8,6 +8,7 @@
  */
 import { prisma } from '../src/config/prisma.js';
 import { addDays, DEFAULT_INTERVALS } from '../src/modules/cards/leitner.service.js';
+import { dateOnlyToUtc, todayInTimeZone } from '../src/lib/dates.js';
 
 interface CardSpec {
   front: string;
@@ -100,6 +101,7 @@ async function main() {
   });
 
   const now = new Date();
+  const today = dateOnlyToUtc(todayInTimeZone(now));
   let totalCards = 0;
 
   for (const spec of DECKS) {
@@ -126,7 +128,7 @@ async function main() {
           notas: c.notas ?? null,
           tags: c.tags ?? [],
           cajaActual: c.caja,
-          proximaRevision: addDays(now, c.dueInDays),
+          proximaRevision: addDays(today, c.dueInDays),
         },
       });
       cardIds.push(card.id);
@@ -136,8 +138,8 @@ async function main() {
     // Un par de reviews para que "último estudio" y el resumen tengan datos.
     await prisma.review.createMany({
       data: [
-        { cardId: cardIds[0]!, resultado: true, fechaRevision: addDays(now, -2) },
-        { cardId: cardIds[1] ?? cardIds[0]!, resultado: true, fechaRevision: addDays(now, -1) },
+        { cardId: cardIds[0]!, resultado: true, fechaRevision: new Date(now.getTime() - 2 * 86_400_000) },
+        { cardId: cardIds[1] ?? cardIds[0]!, resultado: true, fechaRevision: new Date(now.getTime() - 86_400_000) },
       ],
     });
   }

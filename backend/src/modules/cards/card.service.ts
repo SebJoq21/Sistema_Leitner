@@ -1,3 +1,5 @@
+import { todayInTimeZone } from '../../lib/dates.js';
+import { serializeDateOnly } from '../../lib/serialize.js';
 import { cardRepository } from './card.repository.js';
 import type { CreateCardDto, ListCardsQuery, UpdateCardDto } from './card.dto.js';
 
@@ -8,25 +10,36 @@ function parseCaja(value: unknown): number | undefined {
 }
 
 export const cardService = {
-  due(userId: string, deckId?: string, cajaRaw?: unknown) {
-    return cardRepository.findDueByUser(userId, deckId, parseCaja(cajaRaw));
+  async due(userId: string, timezone: string, deckId?: string, cajaRaw?: unknown) {
+    const today = todayInTimeZone(new Date(), timezone);
+    const cards = await cardRepository.findDueByUser(userId, today, deckId, parseCaja(cajaRaw));
+    return cards.map(serializeDateOnly);
   },
-  list(userId: string, query: ListCardsQuery) {
-    return cardRepository.findAllByUser(userId, query);
+  async list(userId: string, timezone: string, query: ListCardsQuery) {
+    const today = todayInTimeZone(new Date(), timezone);
+    const cards = await cardRepository.findAllByUser(userId, today, query);
+    return cards.map(serializeDateOnly);
   },
-  boxes(userId: string, deckId?: string) {
-    return cardRepository.boxesByUser(userId, deckId);
+  async boxes(userId: string, timezone: string, deckId?: string) {
+    const today = todayInTimeZone(new Date(), timezone);
+    const boxes = await cardRepository.boxesByUser(userId, today, deckId);
+    return boxes.map(serializeDateOnly);
   },
-  create(userId: string, dto: CreateCardDto) {
-    return cardRepository.createForUser(userId, dto);
+  async create(userId: string, timezone: string, dto: CreateCardDto) {
+    const today = todayInTimeZone(new Date(), timezone);
+    const card = await cardRepository.createForUser(userId, dto, today);
+    return serializeDateOnly(card);
   },
-  update(userId: string, cardId: string, dto: UpdateCardDto) {
-    return cardRepository.updateForUser(cardId, userId, dto);
+  async update(userId: string, cardId: string, dto: UpdateCardDto) {
+    const card = await cardRepository.updateForUser(cardId, userId, dto);
+    return serializeDateOnly(card);
   },
-  remove(userId: string, cardId: string) {
+  async remove(userId: string, cardId: string) {
     return cardRepository.removeForUser(cardId, userId);
   },
-  review(userId: string, cardId: string, acierto: boolean) {
-    return cardRepository.reviewForUser(userId, cardId, acierto);
+  async review(userId: string, timezone: string, cardId: string, acierto: boolean) {
+    const today = todayInTimeZone(new Date(), timezone);
+    const card = await cardRepository.reviewForUser(userId, cardId, acierto, today);
+    return serializeDateOnly(card);
   },
 };

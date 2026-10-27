@@ -2,10 +2,13 @@ import type { Request, Response } from 'express';
 import { deckService } from './deck.service.js';
 import { requireUserId } from '../../middlewares/validate.js';
 import { ensureUser } from '../auth/user-sync.js';
+import { settingsService } from '../settings/settings.service.js';
 
 export const deckController = {
   async list(req: Request, res: Response) {
-    const decks = await deckService.list(requireUserId(req));
+    const userId = requireUserId(req);
+    const timezone = await settingsService.resolveTimezone(userId, req.timezone);
+    const decks = await deckService.list(userId, timezone);
     res.json(decks);
   },
 
