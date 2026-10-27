@@ -83,7 +83,8 @@ npm test
 
 Notas:
 
-- Actualmente no hay framework de tests. El primer change debe agregar Vitest al backend.
+- Backend usa Vitest. `npm test` incluye unitarias e integración; la integración necesita PostgreSQL 16 y `backend/.env.test` (ver `backend/.env.test.example`). No ejecutar la suite contra la base de producción.
+- Frontend usa Vitest para funciones puras. Testing Library se agregará cuando se cubra UI.
 - Si un comando de test todavía no existe, indicarlo en el PR y no inventar resultados.
 - Si hay migraciones Prisma, probarlas localmente antes de abrir el PR.
 
@@ -182,29 +183,18 @@ No empezar un change que dependa de otro sin integrar antes el anterior en `deve
   4. Verificar que las specs describan el estado real.
 - Mantener la documentación en español; conservar en inglés las palabras clave de OpenSpec.
 
+## Decisiones resueltas
+
+- **Migración histórica de `proximaRevision`:** los timestamps existentes se interpretan como UTC. Riesgo aceptado: una tarjeta creada cerca de la medianoche local puede quedar con un día de diferencia.
+- **Zona horaria del usuario:** el navegador envía `X-Timezone` y el backend la persiste cuando el usuario no tiene zona guardada. La zona guardada gana sobre el header y no se actualiza automáticamente si el navegador cambia.
+- **Tests:** backend con Vitest (unitarias e integración); frontend con Vitest para funciones puras. Testing Library/UI se difiere al change `guard-review-when-due`.
+
 ## Decisiones pendientes
 
-Estas decisiones deben confirmarse antes de implementar el change correspondiente:
-
-1. **Migración histórica de `proximaRevision`**
-   - Recomendación: interpretar los timestamps existentes como UTC.
-   - Alternativa: usar la zona local del servidor de producción.
-   - Riesgo: un posible corrimiento de un día en tarjetas creadas cerca de medianoche.
-
-2. **Zona horaria del usuario**
-   - Recomendación: usar la zona del navegador (`X-Timezone`) y persistirla automáticamente.
-   - Alternativa: agregar un selector manual en ajustes desde el inicio.
-   - Decisión pendiente: si la zona guardada se actualiza automáticamente cuando cambia el navegador.
-
-3. **Tests de frontend**
-   - Recomendación: backend con Vitest desde el primer change; frontend con Vitest + Testing Library cuando se cubra la UI.
-   - Alternativa: limitar el primer change a tests de backend.
-   - Decisión pendiente: alcance inicial de los tests de frontend.
-
-4. **Método de merge**
+1. **Método de merge**
    - Pendiente: squash, merge commit o rebase.
    - Regla común: no hacer merge sin instrucción explícita.
 
-5. **Protección de ramas**
+2. **Protección de ramas**
    - Pendiente: configurar reglas en GitHub para impedir pushes directos a `main` y `development`.
    - Mientras no existan reglas, la restricción se respeta por convención.

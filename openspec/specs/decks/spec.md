@@ -91,7 +91,7 @@ El sistema SHALL borrar las tarjetas de un mazo cuando el mazo se elimina, y SHA
 
 ### Requirement: Resumen por mazo
 
-El sistema SHALL devolver por cada mazo el total de tarjetas, la cantidad de dominadas, la cantidad de pendientes, la fecha del último estudio y la próxima revisión más cercana.
+El sistema SHALL devolver por cada mazo el total de tarjetas, la cantidad de dominadas, la cantidad de pendientes desde el inicio del día actual en la zona horaria del usuario, la fecha del último estudio y la próxima revisión más cercana. Las fechas de revisión SHALL devolverse como `YYYY-MM-DD`.
 
 #### Scenario: Mazo con tarjetas en varias cajas
 
@@ -99,7 +99,14 @@ El sistema SHALL devolver por cada mazo el total de tarjetas, la cantidad de dom
 - WHEN se lista el mazo
 - THEN `total` cuenta las tres tarjetas
 - AND `dominadas` cuenta las tarjetas de Caja 4 y Caja 5
-- AND `pendientes` cuenta las tarjetas con `proximaRevision` ya cumplida
+- AND `pendientes` cuenta las tarjetas con `proximaRevision` menor o igual a hoy
+
+#### Scenario: Pendientes desde el inicio del día local
+
+- GIVEN un usuario en `America/Lima` con una tarjeta agendada para hoy
+- WHEN lista sus mazos a las 00:01 hora local
+- THEN la tarjeta cuenta como pendiente
+- AND no espera a la hora exacta en que fue agendada
 
 #### Scenario: Mazo sin tarjetas
 
@@ -113,6 +120,14 @@ El sistema SHALL devolver por cada mazo el total de tarjetas, la cantidad de dom
 - GIVEN un mazo con varios repasos
 - WHEN se lista
 - THEN `ultimoEstudio` es la fecha del repaso más reciente del mazo
+- AND se muestra en la zona horaria del usuario
+
+#### Scenario: Próxima revisión comparada por día
+
+- GIVEN un mazo con una tarjeta agendada para mañana y otra para dentro de tres días
+- WHEN se lista el mazo
+- THEN `proximaRevision` es la fecha de mañana
+- AND se devuelve como `YYYY-MM-DD`, sin hora
 
 ### Requirement: Meta diaria
 
@@ -163,8 +178,8 @@ La pantalla de mazos SHALL permitir buscar por nombre, descripción o etiquetas 
 - Los límites de la interfaz son más estrictos que los del backend: el formulario limita nombre a 60 y descripción a 200, mientras el DTO acepta 100 y 500.
 - El “Deshacer” del borrado de mazo recrea el mazo y sus tarjetas, pero no recupera los repasos ni las fechas originales de próxima revisión.
 - Un `PATCH` o `DELETE` sobre un mazo ajeno termina en `500` por una excepción de Prisma, no en `404`.
-- La fecha de último estudio se muestra con `formatRelative`, que hoy interpreta mal el signo de las fechas pasadas: puede mostrar “2 d” en lugar de “Hace 2 días” y “Ayer” para una fecha futura de un día.
 - El listado de mazos carga todas las tarjetas y todos los repasos del usuario para calcular las estadísticas; no pagina ni agrega en la base de datos.
+- `ultimoEstudio` sigue siendo un instante ISO; solo `proximaRevision` se serializa como `YYYY-MM-DD`.
 - No se valida que `icon` corresponda a un ícono conocido; cualquier cadena de hasta 50 caracteres se guarda y la interfaz usa un ícono por defecto si no lo reconoce.
 
 ## Referencias de código
