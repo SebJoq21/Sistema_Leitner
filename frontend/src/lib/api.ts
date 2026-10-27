@@ -42,6 +42,7 @@ export interface BoxStats {
 export interface Settings {
   userId: string;
   intervalos: number[];
+  timezone: string | null;
 }
 
 export interface StatsSummary {
@@ -81,7 +82,16 @@ export interface CardPayload {
   cajaInicial?: number;
 }
 
+function browserTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
+  const timeZone = browserTimeZone();
   let res: Response;
   try {
     // Sin timeout, un backend apagado deja la promesa colgada eternamente
@@ -92,6 +102,7 @@ async function request<T>(path: string, token: string, init?: RequestInit): Prom
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
+        ...(timeZone ? { 'X-Timezone': timeZone } : {}),
         ...(init?.headers ?? {}),
       },
     });
@@ -161,9 +172,12 @@ export const api = {
     }),
 
   getSettings: (token: string) => request<Settings>('/api/v1/settings', token),
-  updateSettings: (token: string, intervalos: number[]) =>
+  updateSettings: (
+    token: string,
+    data: { intervalos?: number[]; timezone?: string | null },
+  ) =>
     request<Settings>('/api/v1/settings', token, {
       method: 'PATCH',
-      body: JSON.stringify({ intervalos }),
+      body: JSON.stringify(data),
     }),
 };

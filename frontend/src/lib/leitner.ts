@@ -103,6 +103,17 @@ export function pickDeckColor(index: number): string {
 
 // —— Fechas ——
 const DAY_MS = 24 * 60 * 60 * 1000;
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Interpreta YYYY-MM-DD como fecha local; los timestamps ISO se respetan. */
+function toLocalDate(value: string | Date): Date {
+  if (value instanceof Date) return value;
+  if (DATE_ONLY_RE.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year!, month! - 1, day!);
+  }
+  return new Date(value);
+}
 
 function startOfDay(d: Date): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
@@ -110,11 +121,11 @@ function startOfDay(d: Date): number {
 
 /** Días de calendario hasta `date` (negativo si ya venció). */
 export function daysUntil(date: string | Date): number {
-  return Math.round((startOfDay(new Date(date)) - startOfDay(new Date())) / DAY_MS);
+  return Math.round((startOfDay(toLocalDate(date)) - startOfDay(new Date())) / DAY_MS);
 }
 
 export function isDue(date: string | Date): boolean {
-  return new Date(date).getTime() <= Date.now();
+  return daysUntil(date) <= 0;
 }
 
 /** "Hoy" / "Mañana" / "En 3 días" / "Vencida hace 2 días". */
@@ -127,13 +138,17 @@ export function formatNextReview(date: string | Date | null | undefined): string
   return `En ${d} días`;
 }
 
-/** "Hoy" / "Ayer" / "Hace 5 días" / "Nunca". */
+/** "Hoy" / "Ayer" / "Hace 5 días" / "En 3 días" / "Nunca". */
 export function formatRelative(date: string | Date | null | undefined): string {
   if (!date) return 'Nunca';
   const d = daysUntil(date);
-  if (d <= 0) return d === 0 ? 'Hoy' : `${Math.abs(d)} d`;
-  if (d === 1) return 'Ayer';
-  if (d < 30) return `Hace ${d} días`;
-  const months = Math.round(d / 30);
-  return months === 1 ? 'Hace 1 mes' : `Hace ${months} meses`;
+  if (d === 0) return 'Hoy';
+  if (d === -1) return 'Ayer';
+  if (d === 1) return 'Mañana';
+
+  const abs = Math.abs(d);
+  const prefix = d < 0 ? 'Hace' : 'En';
+  if (abs < 30) return `${prefix} ${abs} días`;
+  const months = Math.round(abs / 30);
+  return months === 1 ? `${prefix} 1 mes` : `${prefix} ${months} meses`;
 }
