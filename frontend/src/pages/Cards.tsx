@@ -126,7 +126,7 @@ export function CardsPage() {
     });
     return [...list].sort((a, b) => {
       if (order === 'proxima') {
-        return new Date(a.proximaRevision).getTime() - new Date(b.proximaRevision).getTime();
+        return a.proximaRevision.localeCompare(b.proximaRevision);
       }
       const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;

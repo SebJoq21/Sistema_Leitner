@@ -5,11 +5,13 @@ import { cardRoutes } from './modules/cards/card.routes.js';
 import { settingsRoutes } from './modules/settings/settings.routes.js';
 import { statsRoutes } from './modules/stats/stats.routes.js';
 import { errorHandler } from './middlewares/validate.js';
+import { timezoneMiddleware } from './middlewares/timezone.js';
 
 export function createApp() {
   const app = express();
-  app.use(cors());
+  app.use(cors({ allowedHeaders: ['Content-Type', 'Authorization', 'X-Timezone'] }));
   app.use(express.json());
+  app.use(timezoneMiddleware);
 
   app.get('/health', (_req, res) => res.json({ ok: true, service: 'leitner-backend' }));
 

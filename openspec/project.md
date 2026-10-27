@@ -14,7 +14,7 @@ El producto está pensado para estudio individual: cada usuario ve exclusivament
 | Backend | Node.js + TypeScript (ESM) + Express 4, Zod | Render, según `specs/task.md`. No hay configuración de despliegue en el repositorio. |
 | Base de datos | PostgreSQL en Supabase, Prisma 7 | Supabase |
 | Autenticación | Supabase Auth con JWT | Supabase |
-| Pruebas | No hay framework ni pruebas automatizadas configuradas actualmente | — |
+| Pruebas | Vitest en backend (unitarias e integración con PostgreSQL) y frontend (funciones puras) | — |
 
 En desarrollo local el frontend usa `VITE_API_URL` (por defecto `http://localhost:3001`) y el backend escucha en `PORT` (por defecto `3001`). El backend expone las rutas versionadas `/api/v1/...` y mantiene alias sin versión (`/api/...`) por compatibilidad.
 
@@ -58,7 +58,8 @@ Los loaders del router leen el token de `localStorage`, llaman al backend y redi
 - **Validación:** los DTO se declaran con Zod en archivos `*.dto.ts`; `validateBody` y `validateQuery` responden `400` con `{ error, details }` cuando la validación falla.
 - **Aislamiento:** toda consulta de datos de usuario filtra por el `userId` autenticado, directa o indirectamente mediante `deck.userId`. Los mazos y tarjetas ajenos no se exponen.
 - **Errores:** `401` para token ausente o inválido; `400` para datos inválidos; `204` en borrados exitosos; `500` para errores no controlados. No existe un mapeo global de errores de “no encontrado” de Prisma a `404`.
-- **Fechas:** el backend recibe y devuelve fechas ISO-8601. `proximaRevision` y `fechaRevision` son `DateTime` en el estado actual; el frontend las interpreta con la zona horaria del navegador.
+- **Fechas:** `proximaRevision` es una columna `DATE` y se transporta como `YYYY-MM-DD`; el frontend la interpreta como fecha local. `fechaRevision` sigue siendo un instante ISO-8601 y se agrupa por el día de la zona del usuario.
+- **Zona horaria:** el frontend envía `X-Timezone` en cada petición; el backend valida la zona IANA y la guarda en `user_settings.timezone` cuando falta. La zona guardada gana sobre el header y `UTC` es el respaldo final.
 - **Formularios:** React Hook Form + Zod en el frontend; los límites de longitud y los valores permitidos se validan también en el backend.
 - **UI:** Tailwind CSS 4 con tokens definidos en `frontend/src/index.css`; modo oscuro mediante la clase `.dark` en `<html>`.
 
@@ -68,12 +69,12 @@ Los loaders del router leen el token de `localStorage`, llaman al backend y redi
 - **Tarjeta (Card):** unidad de estudio con frente (pregunta), reverso (respuesta), pista, notas, etiquetas y estado Leitner.
 - **Caja:** nivel de 1 a 5 que define cada cuánto se repasa una tarjeta. Los intervalos por defecto son 1, 3, 7, 15 y 30 días.
 - **Repaso (Review):** registro de una respuesta, con `resultado` booleano (acierto/fallo) y `fechaRevision`.
-- **Vencimiento / pendiente:** tarjeta cuya `proximaRevision` ya llegó. En el estado actual se compara contra el instante presente del servidor.
+- **Vencimiento / pendiente:** tarjeta cuya `proximaRevision` es menor o igual al día actual en la zona horaria del usuario. Está pendiente desde las 00:00 de ese día.
 - **Dominada:** para las estadísticas de mazos y del dashboard, una tarjeta está dominada cuando `cajaActual >= 4`. La interfaz etiqueta la Caja 5 como “Dominada”, pero el conteo incluye también la Caja 4. Esta diferencia está documentada en las preguntas abiertas de `decks` y `stats`.
 - **Intervalo:** número de días que espera una caja antes de volver a mostrar la tarjeta. Es configurable por usuario.
 - **Meta diaria (`metaDiaria`):** campo opcional del mazo. En el estado actual solo se almacena y se muestra; no limita la cola de estudio.
 - **Sesión de estudio:** conjunto de tarjetas vencidas que el usuario repasa en una pantalla, con filtros opcionales por mazo y caja.
-- **Zona horaria:** zona IANA del usuario. En el estado actual no existe como preferencia persistida; los cálculos usan la zona del servidor.
+- **Zona horaria:** zona IANA del usuario, persistida en `user_settings.timezone`. El navegador la envía con `X-Timezone` y el backend la usa para el día local, la cola y las estadísticas.
 
 ## Cómo trabajamos
 

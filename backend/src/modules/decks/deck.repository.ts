@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma.js';
+import { toDateOnly } from '../../lib/dates.js';
 import type { CreateDeckDto, UpdateDeckDto } from './deck.dto.js';
 
 export interface DeckWithStats {
@@ -21,8 +22,7 @@ export interface DeckWithStats {
 }
 
 export const deckRepository = {
-  async findAllByUser(userId: string): Promise<DeckWithStats[]> {
-    const now = new Date();
+  async findAllByUser(userId: string, today: string): Promise<DeckWithStats[]> {
     const [decks, cards, reviews] = await Promise.all([
       prisma.deck.findMany({
         where: { userId },
@@ -43,7 +43,7 @@ export const deckRepository = {
     const stats = new Map<string, { pendientes: number; dominadas: number; proxima: Date | null }>();
     for (const card of cards) {
       const entry = stats.get(card.deckId) ?? { pendientes: 0, dominadas: 0, proxima: null };
-      if (card.proximaRevision <= now) entry.pendientes += 1;
+      if (toDateOnly(card.proximaRevision) <= today) entry.pendientes += 1;
       if (card.cajaActual >= 4) entry.dominadas += 1;
       if (!entry.proxima || card.proximaRevision < entry.proxima) entry.proxima = card.proximaRevision;
       stats.set(card.deckId, entry);

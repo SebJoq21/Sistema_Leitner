@@ -106,7 +106,7 @@ export function BoxesPage() {
   async function saveIntervalos(next: number[]) {
     setSaving(true);
     try {
-      await api.updateSettings(token, next);
+      await api.updateSettings(token, { intervalos: next });
       setIntervalos(next);
       setSettingsOpen(false);
       toast.success('Intervalos actualizados');

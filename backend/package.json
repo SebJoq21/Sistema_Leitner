@@ -13,7 +13,11 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "seed": "tsx scripts/seed.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/dates.test.ts tests/leitner.service.test.ts tests/stats.service.test.ts tests/settings.dto.test.ts tests/serialize.test.ts",
+    "test:integration": "vitest run tests/cards.integration.test.ts",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
@@ -31,9 +35,12 @@
     "@types/express": "^4.17.21",
     "@types/node": "^22.5.0",
     "@types/pg": "^8.11.0",
+    "@types/supertest": "^7.2.1",
     "prisma": "^7.10.1",
     "rimraf": "^6.0.1",
+    "supertest": "^7.3.1",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^5.0.5"
   }
 }

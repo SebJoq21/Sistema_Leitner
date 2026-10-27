@@ -24,6 +24,7 @@ model User {
 model UserSettings {
   userId     String   @id @db.Uuid
   intervalos Int[]    @default([1, 3, 7, 15, 30])
+  timezone   String?
   updatedAt  DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -59,7 +60,7 @@ model Card {
   notas           String?
   tags            String[] @default([])
   cajaActual      Int      @default(1)
-  proximaRevision DateTime @default(now())
+  proximaRevision DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

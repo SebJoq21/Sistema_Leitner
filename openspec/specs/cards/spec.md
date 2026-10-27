@@ -72,21 +72,30 @@ El sistema SHALL validar los campos de una tarjeta con estos límites: `frontTex
 
 ### Requirement: Creación y estado inicial
 
-El sistema SHALL crear la tarjeta en Caja 1 con vencimiento inmediato por defecto, y SHALL aceptar `cajaInicial` entre 1 y 5 para sobrescribir únicamente la caja.
+El sistema SHALL crear la tarjeta en Caja 1 con vencimiento para el día actual en la zona horaria del usuario, y SHALL aceptar `cajaInicial` entre 1 y 5 para sobrescribir únicamente la caja. La fecha de vencimiento SHALL guardarse sin hora.
 
 #### Scenario: Creación por defecto
 
 - GIVEN un `deckId` propio y un cuerpo sin `cajaInicial`
 - WHEN se crea la tarjeta
 - THEN `cajaActual` es 1
-- AND `proximaRevision` es el instante de creación
+- AND `proximaRevision` es la fecha local actual, sin hora
+- AND la tarjeta aparece de inmediato en la cola de vencidas
 
 #### Scenario: Creación con caja inicial
 
 - GIVEN un cuerpo con `cajaInicial = 3`
 - WHEN se crea la tarjeta
 - THEN `cajaActual` es 3
-- AND `proximaRevision` sigue siendo el instante de creación
+- AND `proximaRevision` sigue siendo la fecha local actual, no la fecha base más el intervalo de la Caja 3
+- AND la tarjeta aparece de inmediato en la cola de vencidas
+
+#### Scenario: Creación en Lima cerca de la medianoche
+
+- GIVEN un usuario en `America/Lima` y un instante `2026-10-20T02:30:00Z`
+- WHEN crea una tarjeta
+- THEN `proximaRevision` es `2026-10-19`
+- AND un usuario en `UTC` que crea una tarjeta en el mismo instante obtiene `2026-10-20`
 
 #### Scenario: Caja inicial fuera de rango
 
@@ -115,7 +124,15 @@ El sistema SHALL permitir mover una tarjeta a otro mazo propio mediante la actua
 
 ### Requirement: Listado y filtros del API
 
-El sistema SHALL permitir filtrar el listado por mazo, caja, texto en frente o reverso sin distinguir mayúsculas, etiqueta y estado de pendiente, y SHALL permitir ordenar por creación, actualización o próxima revisión.
+El sistema SHALL devolver las tarjetas del usuario autenticado con su mazo, y SHALL permitir filtrar por `deckId`, `caja`, `tag`, `search` y `pendientes`. `pendientes=true` SHALL devolver solo las tarjetas cuya `proximaRevision` sea menor o igual al día actual en la zona horaria del usuario. El listado SHALL incluir `id`, `deckId`, `frontText`, `backText`, `hint`, `notas`, `tags`, `cajaActual`, `proximaRevision`, `createdAt`, `updatedAt` y `deck`, y SHALL permitir ordenar por creación, actualización o próxima revisión.
+
+#### Scenario: Listado completo
+
+- GIVEN un usuario con tarjetas en varios mazos
+- WHEN consulta `GET /api/v1/cards`
+- THEN recibe solo sus tarjetas
+- AND cada tarjeta incluye su mazo en `deck`
+- AND `proximaRevision` se serializa como `YYYY-MM-DD`
 
 #### Scenario: Búsqueda sin distinguir mayúsculas
 
@@ -124,24 +141,38 @@ El sistema SHALL permitir filtrar el listado por mazo, caja, texto en frente o r
 - THEN la tarjeta aparece en el resultado
 - AND también aparecería con `search = CAPITAL`
 
+#### Scenario: Filtro por mazo
+
+- GIVEN un usuario con dos mazos
+- WHEN consulta el listado con `deckId`
+- THEN recibe solo las tarjetas de ese mazo
+- AND si el mazo es de otro usuario, el sistema no expone sus tarjetas
+
 #### Scenario: Filtro por etiqueta
 
-- GIVEN tarjetas con la etiqueta `historia` y otras sin ella
-- WHEN se lista con `tag = historia`
-- THEN solo aparecen las tarjetas que contienen esa etiqueta
-
-#### Scenario: Filtro por pendientes
-
-- GIVEN tarjetas con `proximaRevision` pasada y futura
-- WHEN se lista con `pendientes = true`
-- THEN solo aparecen las tarjetas con vencimiento cumplido
-- AND con `pendientes = false` aparecen las no vencidas
+- GIVEN tarjetas con etiquetas `verbo` y `sustantivo`
+- WHEN consulta el listado con `tag = "verbo"`
+- THEN recibe solo las tarjetas con esa etiqueta exacta
 
 #### Scenario: Filtro por caja
 
 - GIVEN tarjetas en Caja 1 y Caja 5
 - WHEN se lista con `caja = 5`
 - THEN solo aparecen las tarjetas de Caja 5
+
+#### Scenario: Filtro de pendientes desde el inicio del día local
+
+- GIVEN un usuario en `America/Lima` con una tarjeta agendada para hoy
+- WHEN consulta el listado con `pendientes = true` a las 00:01 hora local
+- THEN la tarjeta aparece en el resultado
+- AND una tarjeta agendada para mañana no aparece
+
+#### Scenario: Pendientes con otra zona horaria
+
+- GIVEN un usuario en `America/Lima` y un usuario en `UTC` con la misma tarjeta agendada para `2026-10-20`
+- WHEN cada uno consulta sus pendientes en un instante en que en Lima todavía es 19 de octubre
+- THEN el usuario de Lima no la ve como pendiente
+- AND el usuario de UTC sí la ve como pendiente
 
 #### Scenario: Orden por próxima revisión
 
@@ -276,7 +307,7 @@ El formulario de creación SHALL avisar y bloquear el envío cuando ya existe un
 - La unicidad del frente no está garantizada en la base de datos. La comprobación del formulario es local, se hace por mazo y puede fallar si hay dos pestañas o dos clientes creando a la vez.
 - `frontText` y `backText` aceptan una cadena compuesta solo por espacios en el backend, aunque el formulario hace `trim` antes de enviar.
 - Las operaciones masivas de borrado y movimiento no son atómicas. El “Deshacer” recrea tarjetas nuevas y pierde el historial de repasos y la fecha original de próxima revisión.
-- El filtro `pendientes` usa el instante actual del servidor. Su definición cambiará si se implementa `fix-timezone-scheduling`.
+- La migración histórica de `proximaRevision` interpreta los timestamps como UTC; una tarjeta creada cerca de la medianoche local puede quedar con un día de diferencia.
 - No se permite editar `cajaActual` ni `proximaRevision` desde el `PATCH` de tarjeta; solo el repaso o la creación las modifican.
 
 ## Referencias de código

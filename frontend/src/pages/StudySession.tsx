@@ -2,6 +2,7 @@ import { Link, redirect, useLoaderData, useNavigate, type LoaderFunctionArgs } f
 import { GraduationCap, X } from 'lucide-react';
 import { StudySessionView } from '@/features/study/StudySessionView';
 import { api, type Deck, type DueCard } from '@/lib/api';
+import { daysUntil } from '@/lib/leitner';
 import { getStoredToken } from '@/lib/supabase';
 
 export interface StudyData {
@@ -27,8 +28,7 @@ export async function studyLoader({ request }: LoaderFunctionArgs): Promise<Stud
     api.listDecks(token),
     api.listCards(token, { deckId, caja, order: 'proximaRevision' }),
   ]);
-  const now = Date.now();
-  const nextReview = upcoming.map((c) => c.proximaRevision).find((d) => new Date(d).getTime() > now) ?? null;
+  const nextReview = upcoming.find((c) => daysUntil(c.proximaRevision) > 0)?.proximaRevision ?? null;
   return { cards, token, deckId, caja, decks, nextReview };
 }
 

@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma.js';
+import { dateOnlyToUtc } from '../../lib/dates.js';
 import { settingsRepository } from '../settings/settings.repository.js';
 import type { CreateCardDto, ListCardsQuery, UpdateCardDto } from './card.dto.js';
 import {
@@ -23,10 +24,10 @@ const ORDER_MAP: Record<NonNullable<ListCardsQuery['order']>, 'asc' | 'desc'> = 
 };
 
 export const cardRepository = {
-  findDueByUser(userId: string, deckId?: string, caja?: number) {
+  findDueByUser(userId: string, today: string, deckId?: string, caja?: number) {
     return prisma.card.findMany({
       where: {
-        proximaRevision: { lte: new Date() },
+        proximaRevision: { lte: dateOnlyToUtc(today) },
         ...(caja !== undefined ? { cajaActual: caja } : {}),
         deck: { userId, ...(deckId ? { id: deckId } : {}) },
       },
@@ -35,15 +36,16 @@ export const cardRepository = {
     });
   },
 
-  findAllByUser(userId: string, query: ListCardsQuery) {
+  findAllByUser(userId: string, today: string, query: ListCardsQuery) {
     const { deckId, caja, search, tag, pendientes, order } = query;
     const orderField = order ?? 'updatedAt';
+    const todayDate = dateOnlyToUtc(today);
     return prisma.card.findMany({
       where: {
         ...(caja !== undefined ? { cajaActual: caja } : {}),
         ...(tag ? { tags: { has: tag } } : {}),
         ...(pendientes !== undefined
-          ? { proximaRevision: pendientes ? { lte: new Date() } : { gt: new Date() } }
+          ? { proximaRevision: pendientes ? { lte: todayDate } : { gt: todayDate } }
           : {}),
         ...((search
           ? { OR: [{ frontText: { contains: search, mode: 'insensitive' } }, { backText: { contains: search, mode: 'insensitive' } }] }
@@ -55,8 +57,9 @@ export const cardRepository = {
     });
   },
 
-  async boxesByUser(userId: string, deckId?: string): Promise<BoxesStats[]> {
+  async boxesByUser(userId: string, today: string, deckId?: string): Promise<BoxesStats[]> {
     const deckFilter = { userId, ...(deckId ? { id: deckId } : {}) };
+    const todayDate = dateOnlyToUtc(today);
     const [totals, dues, nexts, intervalos] = await Promise.all([
       prisma.card.groupBy({
         by: ['cajaActual'],
@@ -65,7 +68,7 @@ export const cardRepository = {
       }),
       prisma.card.groupBy({
         by: ['cajaActual'],
-        where: { deck: deckFilter, proximaRevision: { lte: new Date() } },
+        where: { deck: deckFilter, proximaRevision: { lte: todayDate } },
         _count: { _all: true },
       }),
       prisma.card.groupBy({
@@ -97,9 +100,9 @@ export const cardRepository = {
     });
   },
 
-  async createForUser(userId: string, dto: CreateCardDto) {
+  async createForUser(userId: string, dto: CreateCardDto, today: string) {
     const deck = await prisma.deck.findFirstOrThrow({ where: { id: dto.deckId, userId } });
-    const init = tarjetaInicial(new Date());
+    const init = tarjetaInicial(today);
     const cajaActual = dto.cajaInicial ?? init.cajaActual;
     return prisma.card.create({
       data: {
@@ -128,7 +131,7 @@ export const cardRepository = {
     await prisma.card.delete({ where: { id: cardId } });
   },
 
-  async reviewForUser(userId: string, cardId: string, acierto: boolean) {
+  async reviewForUser(userId: string, cardId: string, acierto: boolean, today: string) {
     const card = await prisma.card.findFirstOrThrow({
       where: { id: cardId, deck: { userId } },
     });
@@ -137,7 +140,7 @@ export const cardRepository = {
     const { nuevaCaja, proximaRevision } = calcularProximaRevision({
       cajaActual: card.cajaActual,
       acierto,
-      fechaBase: new Date(),
+      fechaBase: today,
       intervalos,
     });
 

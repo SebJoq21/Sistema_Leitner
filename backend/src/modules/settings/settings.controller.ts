@@ -6,7 +6,7 @@ import { ensureUser } from '../auth/user-sync.js';
 export const settingsController = {
   async get(req: Request, res: Response) {
     await ensureUser(requireUserId(req), req.user?.email);
-    const settings = await settingsService.get(requireUserId(req));
+    const settings = await settingsService.get(requireUserId(req), req.timezone);
     res.json(settings);
   },
 

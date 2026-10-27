@@ -1,6 +1,15 @@
 // Motor Leitner — lógica pura, sin HTTP ni Prisma.
 // Specs (task.md §2.1): Caja 1=1d, 2=3d, 3=7d, 4=15d, 5=30d.
 // Los intervalos son configurables por usuario (UserSettings.intervalos).
+import {
+  addCalendarDays,
+  dateOnlyToUtc,
+  todayInTimeZone,
+  toDateOnly,
+} from '../../lib/dates.js';
+
+export { addDays } from '../../lib/dates.js';
+
 export const DEFAULT_INTERVALS: number[] = [1, 3, 7, 15, 30];
 
 // Compat: se mantiene el mapa original para consumidores que lo importen.
@@ -29,35 +38,55 @@ export function intervaloDeCaja(caja: number, intervalos: number[] = DEFAULT_INT
 export interface LeitnerInput {
   cajaActual: number;
   acierto: boolean;
-  fechaBase?: Date;
+  /** Fecha base como `YYYY-MM-DD` o Date de una columna DATE. */
+  fechaBase?: string | Date;
+  /** Solo se usa cuando se omite `fechaBase`. */
+  timeZone?: string;
   intervalos?: number[];
 }
 
 export interface LeitnerOutput {
   nuevaCaja: number;
+  /** Date UTC a medianoche, como espera Prisma para `@db.Date`. */
   proximaRevision: Date;
 }
 
-export function addDays(base: Date, days: number): Date {
-  const d = new Date(base);
-  d.setDate(d.getDate() + days);
-  return d;
+function fechaBaseKey(fechaBase: string | Date | undefined, timeZone: string): string {
+  if (fechaBase === undefined) return todayInTimeZone(new Date(), timeZone);
+  return typeof fechaBase === 'string' ? fechaBase : toDateOnly(fechaBase);
 }
 
 export function calcularProximaRevision({
   cajaActual,
   acierto,
-  fechaBase = new Date(),
+  fechaBase,
+  timeZone = 'UTC',
   intervalos = DEFAULT_INTERVALS,
 }: LeitnerInput): LeitnerOutput {
+  const base = fechaBaseKey(fechaBase, timeZone);
   if (acierto) {
     const nuevaCaja = Math.min(cajaActual + 1, MAX_CAJA);
-    return { nuevaCaja, proximaRevision: addDays(fechaBase, intervaloDeCaja(nuevaCaja, intervalos)) };
+    return {
+      nuevaCaja,
+      proximaRevision: dateOnlyToUtc(addCalendarDays(base, intervaloDeCaja(nuevaCaja, intervalos))),
+    };
   }
   // Fallo: vuelve a caja 1, repaso según el intervalo de la caja 1
-  return { nuevaCaja: 1, proximaRevision: addDays(fechaBase, intervaloDeCaja(1, intervalos)) };
+  return {
+    nuevaCaja: 1,
+    proximaRevision: dateOnlyToUtc(addCalendarDays(base, intervaloDeCaja(1, intervalos))),
+  };
 }
 
-export function tarjetaInicial(fechaBase = new Date()): { cajaActual: number; proximaRevision: Date } {
-  return { cajaActual: 1, proximaRevision: fechaBase };
+export function tarjetaInicial(fechaBase?: string | Date): {
+  cajaActual: number;
+  proximaRevision: Date;
+} {
+  const key =
+    fechaBase === undefined
+      ? todayInTimeZone(new Date())
+      : typeof fechaBase === 'string'
+        ? fechaBase
+        : toDateOnly(fechaBase);
+  return { cajaActual: 1, proximaRevision: dateOnlyToUtc(key) };
 }
