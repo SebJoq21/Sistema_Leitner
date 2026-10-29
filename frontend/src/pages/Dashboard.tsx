@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLoaderData, useRevalidator, useSearchParams, redirect } from 'react-router-dom';
-import { Clock, Info, Play, Plus } from 'lucide-react';
+import { Info, Play, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -168,18 +168,13 @@ export function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {dueTotal > 0 ? (
+          {dueTotal > 0 && (
             <Link to="/study">
               <Button variant="study">
                 <Play className="size-4" />
                 Estudiar ({dueTotal})
               </Button>
             </Link>
-          ) : (
-            <Button disabled>
-              <Clock className="size-4" />
-              Nada pendiente
-            </Button>
           )}
           <Button variant="secondary" onClick={() => setDeckOpen(true)}>
             <Plus className="size-4" />
@@ -205,8 +200,6 @@ export function DashboardPage() {
             <CardForm
               deckId={cardDeck.id}
               deckName={cardDeck.nombre}
-              decks={decks}
-              onRequestCreateDeck={() => setDeckOpen(true)}
               token={token}
               onSubmit={handleCreateCard}
               submitting={busy}

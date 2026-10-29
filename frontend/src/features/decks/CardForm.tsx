@@ -40,6 +40,7 @@ export function CardForm({
   onSubmit: (values: CardSubmitValues, opts: { keepOpen: boolean }) => Promise<void> | void;
   submitting?: boolean;
 }) {
+  const hasFixedDeck = Boolean(deckId);
   const defaults: CardFormValues = {
     deckId: deckId ?? decks?.[0]?.id ?? '',
     frontText: '',
@@ -64,9 +65,8 @@ export function CardForm({
   const backText = watch('backText') ?? '';
   const hint = watch('hint') ?? '';
   const notas = watch('notas') ?? '';
-  const effectiveDeckId = watch('deckId') ?? '';
-  const cajaInicial = Number(watch('cajaInicial')) || 1;
-  const effectiveDeckName = decks?.find((d) => d.id === effectiveDeckId)?.nombre ?? deckName ?? '';
+  const effectiveDeckId = deckId ?? watch('deckId') ?? '';
+  const effectiveDeckName = deckName ?? decks?.find((d) => d.id === effectiveDeckId)?.nombre ?? '';
   const [existing, setExisting] = useState<string[]>([]);
 
   useEffect(() => {
@@ -90,13 +90,13 @@ export function CardForm({
 
   function build(values: CardFormValues): CardSubmitValues {
     return {
-      deckId: values.deckId,
+      deckId: deckId ?? values.deckId,
       frontText: values.frontText.trim(),
       backText: values.backText.trim(),
       hint: values.hint?.trim() ? values.hint.trim() : undefined,
       notas: values.notas?.trim() ? values.notas.trim() : undefined,
       tags: values.tags,
-      cajaInicial: Number(values.cajaInicial) || 1,
+      cajaInicial: 1,
     };
   }
 
@@ -107,7 +107,7 @@ export function CardForm({
     }
     clearErrors('frontText');
     await onSubmit(build(values), { keepOpen });
-    reset({ ...defaults, deckId: values.deckId });
+    reset({ ...defaults, deckId: deckId ?? values.deckId });
   }
 
   return (
@@ -115,7 +115,7 @@ export function CardForm({
       {/* Vista previa */}
       <div className="grid gap-2 rounded-xl border border-border-soft bg-primary-muted p-3">
         <div className="flex items-center gap-2">
-          <CajaBadge caja={cajaInicial} />
+          <CajaBadge caja={1} />
           <span className="text-xs text-ink-soft">{effectiveDeckName}</span>
         </div>
         <p className="text-sm font-semibold text-ink">{frontText.trim() || 'Pregunta…'}</p>
@@ -123,7 +123,7 @@ export function CardForm({
         {hint.trim() && <p className="text-xs italic text-ink-soft">Pista: {hint.trim()}</p>}
       </div>
 
-      {decks && decks.length > 0 && (
+      {!hasFixedDeck && decks && decks.length > 0 && (
         <div className="grid gap-1.5">
           <label className="text-sm font-medium text-ink">Mazo</label>
           <Controller
@@ -214,18 +214,6 @@ export function CardForm({
         )}
       />
 
-      <div className="grid gap-1.5">
-        <label className="text-sm font-medium text-ink">Caja inicial</label>
-        <select className={selectClass} {...register('cajaInicial')}>
-          {[1, 2, 3, 4, 5].map((n) => (
-            <option key={n} value={n}>
-              Caja {n}
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-ink-soft">Por defecto entra en la Caja 1.</p>
-      </div>
-
       <div className={cn('flex flex-wrap gap-2')}>
         <Button type="button" variant="outline" onClick={handleSubmit((v) => doSubmit(v, true))} disabled={submitting}>
           {submitting ? 'Guardando…' : 'Guardar y crear otra'}
@@ -233,7 +221,7 @@ export function CardForm({
         <Button type="button" onClick={handleSubmit((v) => doSubmit(v, false))} disabled={submitting}>
           {submitting ? 'Guardando…' : 'Guardar'}
         </Button>
-        {onRequestCreateDeck && (
+        {!hasFixedDeck && onRequestCreateDeck && (
           <Button type="button" variant="ghost" onClick={onRequestCreateDeck}>
             <Plus className="size-4" />
             Mazo nuevo

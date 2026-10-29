@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Layers, MoreHorizontal, Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react';
+import { Layers, MoreHorizontal, Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -149,7 +149,7 @@ export function DeckList({
                   >
                     <Icon className="size-6" />
                   </span>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <CardTitle className="truncate">{deck.nombre}</CardTitle>
                     <p className="text-xs text-ink-soft">
                       {deck.ultimoEstudio
@@ -157,6 +157,38 @@ export function DeckList({
                         : 'Sin estudiar aún'}
                     </p>
                   </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-8 shrink-0"
+                        aria-label={`Opciones de ${deck.nombre}`}
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      {onEdit && (
+                        <DropdownMenuItem onSelect={() => onEdit(deck)}>
+                          <Pencil className="size-4" />
+                          Editar mazo
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onSelect={() => onAddCard(deck)}>
+                        <Plus className="size-4" />
+                        Agregar tarjeta
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-error focus:bg-error-soft focus:text-error"
+                        onSelect={() => onDelete(deck)}
+                      >
+                        <Trash2 className="size-4" />
+                        Borrar mazo
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col gap-3">
                   {deck.descripcion && <p className="line-clamp-2 text-sm text-ink-soft">{deck.descripcion}</p>}
@@ -174,7 +206,7 @@ export function DeckList({
                     </div>
                   )}
 
-                  <div className="grid gap-1.5">
+                  <div className="mt-auto grid gap-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-ink-soft">
                         {total} tarjeta{total === 1 ? '' : 's'} · {dom} dominada{dom === 1 ? '' : 's'}
@@ -184,57 +216,16 @@ export function DeckList({
                     <Progress value={pct} barClassName="bg-azul-500" label={`Progreso de ${deck.nombre}`} />
                   </div>
 
-                  <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
-                    {hasDue ? (
-                      <Link to={`/study?deckId=${deck.id}`}>
-                        <Button size="sm" variant="study">
-                          <Play className="size-4" />
+                  {hasDue && (
+                    <div className="pt-1">
+                      <Link to={`/study?deckId=${deck.id}`} className="block">
+                        <Button size="sm" variant="study" className="w-full">
+                          <Play className="size-3.5" />
                           Estudiar ({pend})
                         </Button>
                       </Link>
-                    ) : (
-                      <Button size="sm" disabled>
-                        <Clock className="size-4" />
-                        Nada pendiente
-                      </Button>
-                    )}
-                    <Button size="sm" variant="secondary" onClick={() => onAddCard(deck)}>
-                      <Plus className="size-4" />
-                      Tarjeta
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="ml-auto"
-                          aria-label={`Opciones de ${deck.nombre}`}
-                        >
-                          <MoreHorizontal className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        {onEdit && (
-                          <DropdownMenuItem onSelect={() => onEdit(deck)}>
-                            <Pencil className="size-4" />
-                            Editar mazo
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onSelect={() => onAddCard(deck)}>
-                          <Plus className="size-4" />
-                          Agregar tarjeta
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-error focus:bg-error-soft focus:text-error"
-                          onSelect={() => onDelete(deck)}
-                        >
-                          <Trash2 className="size-4" />
-                          Borrar mazo
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );

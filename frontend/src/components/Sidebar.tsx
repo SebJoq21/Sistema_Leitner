@@ -65,13 +65,14 @@ function NavItemLink({
       aria-label={collapsed ? item.label : undefined}
       className={({ isActive }) =>
         cn(
-          'group relative flex min-h-10 w-full items-center rounded-xl text-sm font-medium transition-all duration-150 motion-reduce:transition-none',
+          'group relative flex items-center rounded-xl text-sm font-medium transition-all duration-150 motion-reduce:transition-none',
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-sb-accent focus-visible:outline-offset-2',
-          collapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-2',
+          collapsed ? 'mx-auto size-10 justify-center p-0' : 'min-h-10 w-full gap-3 px-3 py-2',
           isActive &&
             cn(
               'bg-sb-active-bg font-semibold text-sb-text-strong shadow-sm',
-              'before:absolute before:left-0 before:top-1/2 before:h-5 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-sb-accent',
+              !collapsed &&
+                'before:absolute before:left-0 before:top-1/2 before:h-5 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-sb-accent',
             ),
           !isActive && 'text-sb-text/85 hover:bg-sb-accent/10 hover:text-sb-text-strong',
         )
@@ -98,7 +99,7 @@ function NavItemLink({
 
   return collapsed ? (
     <Tooltip content={item.label} side="right">
-      {link}
+      <div className="flex w-full justify-center">{link}</div>
     </Tooltip>
   ) : (
     link
@@ -110,16 +111,18 @@ function StreakCard({ days, collapsed }: { days: number; collapsed: boolean }) {
   if (collapsed) {
     return (
       <Tooltip content={`${days} ${days === 1 ? 'día' : 'días'} en racha`} side="right">
-        <div
-          className="mx-auto flex size-10 items-center justify-center rounded-xl border transition-transform hover:scale-105"
-          style={{
-            background: active
-              ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.28), rgba(251, 191, 36, 0.14))'
-              : 'rgba(255, 255, 255, 0.06)',
-            borderColor: active ? 'rgba(251, 146, 60, 0.45)' : 'var(--color-sb-border)',
-          }}
-        >
-          <Flame className={cn('size-5', active ? 'text-[#FB923C]' : 'text-sb-text/60')} aria-hidden />
+        <div className="flex w-full justify-center">
+          <div
+            className="flex size-10 items-center justify-center rounded-xl border transition-transform hover:scale-105"
+            style={{
+              background: active
+                ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.28), rgba(251, 191, 36, 0.14))'
+                : 'rgba(255, 255, 255, 0.06)',
+              borderColor: active ? 'rgba(251, 146, 60, 0.45)' : 'var(--color-sb-border)',
+            }}
+          >
+            <Flame className={cn('size-5', active ? 'text-[#FB923C]' : 'text-sb-text/60')} aria-hidden />
+          </div>
         </div>
       </Tooltip>
     );
@@ -180,13 +183,13 @@ export function SidebarBody({
   const [tutorialOpen, setTutorialOpen] = useState(false);
 
   return (
-    <div className={cn('flex h-full flex-col gap-4', collapsed ? 'px-2 py-4' : 'p-4')}>
-      <div className={cn('flex w-full items-center gap-2', collapsed ? 'flex-col px-0' : 'px-1')}>
+    <div className={cn('flex h-full flex-col gap-4', collapsed ? 'items-center px-2 py-4' : 'p-4')}>
+      <div className={cn('flex w-full items-center gap-2', collapsed ? 'flex-col justify-center px-0' : 'px-1')}>
         <NavLink
           to="/"
           onClick={onNavigate}
           aria-label="Leitner"
-          className={cn('flex min-w-0 items-center gap-2', collapsed && 'justify-center')}
+          className={cn('flex min-w-0 items-center gap-2', collapsed && 'mx-auto justify-center')}
         >
           <BrandMark className="size-10" />
           {!collapsed && (
@@ -205,9 +208,9 @@ export function SidebarBody({
             aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
             title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
             className={cn(
-              'rounded-lg p-1.5 text-sb-text/70 transition-colors hover:bg-sb-accent/10 hover:text-sb-text-strong',
+              'flex items-center justify-center rounded-lg text-sb-text/70 transition-colors hover:bg-sb-accent/10 hover:text-sb-text-strong',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-sb-accent focus-visible:outline-offset-2',
-              !collapsed && 'ml-auto',
+              collapsed ? 'mx-auto size-9' : 'ml-auto p-1.5',
             )}
           >
             {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
@@ -215,13 +218,13 @@ export function SidebarBody({
         )}
       </div>
 
-      <div className="h-px bg-sb-border" aria-hidden />
+      <div className="h-px w-full bg-sb-border" aria-hidden />
 
-      <nav className="grid gap-2">
+      <nav className="grid w-full gap-2">
         {GROUPS.map((group, gi) => (
-          <div key={group.label} className="grid gap-1">
+          <div key={group.label} className={cn('grid gap-1', collapsed && 'justify-items-center')}>
             {collapsed ? (
-              gi > 0 && <div className="mx-2 my-1.5 h-px bg-sb-border" aria-hidden />
+              gi > 0 && <div className="my-1.5 h-px w-8 bg-sb-border" aria-hidden />
             ) : (
               <p className="nav-group-label">{group.label}</p>
             )}
@@ -237,19 +240,21 @@ export function SidebarBody({
         ))}
       </nav>
 
-      <div className="mt-auto grid gap-2.5 pt-3">
+      <div className={cn('mt-auto grid w-full gap-2.5 pt-3', collapsed && 'justify-items-center')}>
         <StreakCard days={rachaDias} collapsed={collapsed} />
 
         {collapsed ? (
           <Tooltip content="Cómo funciona el Sistema Leitner" side="right">
-            <button
-              type="button"
-              onClick={() => setTutorialOpen(true)}
-              aria-label="Cómo funciona el Sistema Leitner"
-              className="mx-auto flex size-10 items-center justify-center rounded-xl border border-sb-border bg-white/5 text-[#38BDF8] transition-colors hover:border-sb-accent/50 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sb-accent focus-visible:outline-offset-2"
-            >
-              <HelpCircle className="size-4.5" aria-hidden />
-            </button>
+            <div className="flex w-full justify-center">
+              <button
+                type="button"
+                onClick={() => setTutorialOpen(true)}
+                aria-label="Cómo funciona el Sistema Leitner"
+                className="flex size-10 items-center justify-center rounded-xl border border-sb-border bg-white/5 text-[#38BDF8] transition-colors hover:border-sb-accent/50 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sb-accent focus-visible:outline-offset-2"
+              >
+                <HelpCircle className="size-4.5" aria-hidden />
+              </button>
+            </div>
           </Tooltip>
         ) : (
           <button
