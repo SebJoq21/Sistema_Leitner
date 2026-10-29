@@ -175,7 +175,7 @@ El sistema SHALL mostrar un header pequeño con el selector de tema y el menú d
 
 - GIVEN una sesión activa en móvil
 - WHEN se renderiza el layout
-- THEN aparece una barra superior con el botón de menú y el nombre “Leitner”
+- THEN aparece una barra superior con el botón de menú, el logo de marca (`BrandMark`) y el nombre “Leitner”
 - AND el sidebar se abre como drawer
 
 #### Scenario: Cerrar sesión desde el menú
@@ -186,7 +186,7 @@ El sistema SHALL mostrar un header pequeño con el selector de tema y el menú d
 
 ### Requirement: Navegación lateral
 
-El sistema SHALL mostrar un sidebar con grupos “Biblioteca” y “Estudio”, íconos por sección, contador de pendientes en “Estudiar”, progreso diario y racha. En escritorio SHALL poder colapsarse; en móvil SHALL funcionar como drawer.
+El sistema SHALL mostrar un sidebar con el logo de marca (`BrandMark`), grupos “Biblioteca” y “Estudio”, íconos por sección con acento de color propio sobre el fondo del sidebar, una tarjeta destacada de racha diaria sin truncar el mensaje motivacional y un botón “Cómo funciona” que abre un tutorial interactivo de 4 pasos sobre el Sistema Leitner (`LeitnerTutorialDialog`). En escritorio SHALL poder colapsarse centrando los íconos y mostrando un único tooltip por ítem; en móvil SHALL funcionar como drawer.
 
 #### Scenario: Secciones del sidebar
 
@@ -194,13 +194,6 @@ El sistema SHALL mostrar un sidebar con grupos “Biblioteca” y “Estudio”,
 - WHEN se muestra el sidebar
 - THEN “Biblioteca” contiene “Mazos” y “Tarjetas”
 - AND “Estudio” contiene “Cajas” y “Estudiar”
-
-#### Scenario: Contador de pendientes
-
-- GIVEN un usuario con tarjetas vencidas
-- WHEN se muestra el ítem “Estudiar”
-- THEN aparece un badge con el total de pendientes
-- AND si no hay pendientes, no aparece el badge
 
 #### Scenario: Sidebar colapsado
 
@@ -255,6 +248,8 @@ La tarjeta de estudio SHALL usar una animación 3D de volteo de 500 ms para reve
 - `frontend/src/lib/theme.ts`
 - `frontend/src/components/ThemeToggle.tsx`
 - `frontend/src/components/UserMenu.tsx`
+- `frontend/src/components/BrandMark.tsx`
+- `frontend/src/components/LeitnerTutorialDialog.tsx`
 - `frontend/src/components/Sidebar.tsx`
 - `frontend/src/components/layout.tsx`
 - `frontend/src/components/ui/badge.tsx`

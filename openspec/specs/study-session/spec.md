@@ -8,14 +8,14 @@ Describe la experiencia de repaso: qué tarjetas entran en la sesión, cómo se 
 
 ### Requirement: Cola de la sesión
 
-El sistema SHALL cargar al iniciar la sesión las tarjetas vencidas del usuario autenticado, ordenadas por `proximaRevision` ascendente, y SHALL permitir filtrarlas por mazo propio y por caja.
+El sistema SHALL cargar al iniciar la sesión las tarjetas vencidas del usuario autenticado, ordenadas primero por `cajaActual` ascendente (Caja 1 → Caja 2 → Caja 3 → Caja 4 → Caja 5) y luego por `proximaRevision` ascendente, mostrando en la interfaz la secuencia explícita de progreso por cajas, y SHALL permitir filtrarlas por mazo propio y por caja.
 
 #### Scenario: Cola con tarjetas vencidas
 
-- GIVEN un usuario con tres tarjetas vencidas en distintos mazos
+- GIVEN un usuario con tres tarjetas vencidas en distintas cajas y mazos
 - WHEN abre la sesión sin filtros
-- THEN recibe las tres tarjetas
-- AND la primera es la que tiene la `proximaRevision` más antigua
+- THEN recibe las tres tarjetas ordenadas de menor a mayor caja (`cajaActual` ascendente) y, dentro de cada caja, de la `proximaRevision` más antigua a la más reciente
+- AND la interfaz muestra la ruta de repaso por cajas indicando cuántas tarjetas corresponden a cada caja y cuál se está estudiando actualmente
 
 #### Scenario: Filtro por mazo
 
@@ -64,7 +64,7 @@ El sistema SHALL mostrar primero el frente de la tarjeta y SHALL permitir voltea
 
 ### Requirement: Acciones de evaluación
 
-El sistema SHALL permitir marcar “La sabía” o “No la sabía” solo después de voltear la tarjeta.
+El sistema SHALL permitir marcar “La sabía” o “No la sabía” solo después de voltear la tarjeta, indicando en cada botón la caja de destino correspondiente.
 
 #### Scenario: Botones antes de voltear
 
@@ -77,7 +77,7 @@ El sistema SHALL permitir marcar “La sabía” o “No la sabía” solo despu
 
 - GIVEN una tarjeta con el reverso visible
 - WHEN el usuario observa los controles
-- THEN se muestran “No la sabía” y “La sabía”
+- THEN se muestran “No la sabía” (indicando que vuelve o sigue en Caja 1) y “La sabía” (indicando la caja a la que sube o que mantiene Caja 5)
 
 ### Requirement: Atajos de teclado
 
@@ -118,7 +118,7 @@ El sistema SHALL enviar cada respuesta al backend antes de avanzar a la siguient
 - GIVEN una tarjeta visible y el backend disponible
 - WHEN el usuario marca un resultado
 - THEN se envía `POST /api/v1/cards/:id/review` con `{ acierto }`
-- AND se muestra un aviso con el resultado
+- AND se actualizan en la cabecera de la sesión los contadores en vivo y el indicador contextual de la transición de caja (sin mostrar un popup/toast flotante)
 - AND se avanza a la siguiente tarjeta
 
 #### Scenario: Error al guardar
