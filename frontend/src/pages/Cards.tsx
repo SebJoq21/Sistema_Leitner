@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, redirect, useLoaderData, useRevalidator, type LoaderFunctionArgs } from 'react-router-dom';
 import {
   ArrowUpDown,
@@ -6,10 +6,13 @@ import {
   Download,
   Filter,
   FolderInput,
+  FolderOpen,
+  Layers,
   ListChecks,
   Pencil,
   Play,
   Plus,
+  Search,
   SquareStack,
   Trash2,
   Upload,
@@ -22,7 +25,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Input, TextArea } from '@/components/ui/input';
+import { TextArea } from '@/components/ui/input';
 import { api, type Deck, type DueCard } from '@/lib/api';
 import { getStoredToken } from '@/lib/supabase';
 import { formatNextReview, DECK_COLOR_FALLBACK } from '@/lib/leitner';
@@ -36,17 +39,8 @@ export interface CardsData {
 
 type CardOrder = 'recientes' | 'proxima';
 
-const selectClass =
-  'h-10 w-full rounded-xl border border-border-soft bg-primary-bg px-3 text-sm text-ink outline-none focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15';
-
-function filterLabel(icon: ReactNode, text: string) {
-  return (
-    <label className="flex items-center gap-1.5 text-sm font-medium text-ink">
-      {icon}
-      {text}
-    </label>
-  );
-}
+const toolbarFieldClass =
+  'h-9 w-full rounded-xl border border-border-soft bg-primary-bg pl-9 pr-3 text-xs font-medium text-ink outline-none transition-colors hover:border-secondary-blue/40 focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/15';
 
 export async function cardsLoader({ request }: LoaderFunctionArgs): Promise<CardsData> {
   const token = getStoredToken();
@@ -371,69 +365,36 @@ export function CardsPage() {
   }
 
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-end gap-x-3 gap-y-4">
-        <div className="mr-auto">
+    <div className="grid gap-5">
+      {/* Cabecera + Acciones globales sutiles */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-secondary-navy dark:text-white">Tarjetas</h1>
-          <p className="text-sm text-ink-soft">
-            {filtered.length} de {cards.length} tarjeta{cards.length === 1 ? '' : 's'}
+          <p className="mt-0.5 text-xs font-medium text-ink-soft">
+            Mostrando <span className="font-semibold text-ink">{filtered.length}</span> de{' '}
+            <span className="font-semibold text-ink">{cards.length}</span> tarjeta{cards.length === 1 ? '' : 's'}
           </p>
         </div>
 
-        <div className="w-52 min-w-0">
-          <Input
-            label="Buscar"
-            placeholder="Pregunta o respuesta…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="grid w-40 min-w-0 gap-1.5">
-          {filterLabel(<FolderInput className="size-4 text-ink-soft" />, 'Mazo')}
-          <select className={selectClass} value={deckId} onChange={(e) => setDeckId(e.target.value)}>
-            <option value="">Todos</option>
-            {decks.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid w-32 min-w-0 gap-1.5">
-          {filterLabel(<SquareStack className="size-4 text-ink-soft" />, 'Caja')}
-          <select className={selectClass} value={caja} onChange={(e) => setCaja(e.target.value)}>
-            <option value="">Todas</option>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={n}>
-                Caja {n}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid w-44 min-w-0 gap-1.5">
-          {filterLabel(<ArrowUpDown className="size-4 text-ink-soft" />, 'Ordenar por')}
-          <select
-            className={selectClass}
-            value={order}
-            onChange={(e) => setOrder(e.target.value as CardOrder)}
-          >
-            <option value="recientes">Creación (recientes)</option>
-            <option value="proxima">Próxima revisión</option>
-          </select>
-        </div>
-
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
-            <Download className="size-4" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleExport}
+            disabled={filtered.length === 0}
+            className="h-9 rounded-xl border border-border-soft bg-surface px-3 text-xs font-medium text-ink-soft shadow-2xs hover:bg-primary-muted hover:text-ink"
+          >
+            <Download className="size-3.5" />
             Exportar CSV
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
+            className="h-9 rounded-xl border border-border-soft bg-surface px-3 text-xs font-medium text-ink-soft shadow-2xs hover:bg-primary-muted hover:text-ink"
           >
-            <Upload className="size-4" />
+            <Upload className="size-3.5" />
             {importing ? 'Importando…' : 'Importar CSV'}
           </Button>
           <input
@@ -449,33 +410,116 @@ export function CardsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="outline" size="sm" onClick={clearFilters} disabled={!hasFilters}>
-          <X className="size-4" />
-          Limpiar filtros
-        </Button>
-        {filtered.length > 0 && (
-          <label className="flex items-center gap-2 text-sm text-ink-soft">
+      {/* Barra de herramientas horizontal compacta */}
+      <div className="rounded-2xl border border-border-soft bg-surface p-3 shadow-xs">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Buscar */}
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-soft" />
             <input
-              type="checkbox"
-              className="size-4 accent-[#3481BC]"
-              checked={allSelected}
-              onChange={toggleAll}
+              type="search"
+              placeholder="Buscar pregunta o respuesta…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={toolbarFieldClass}
+              aria-label="Buscar tarjetas"
             />
-            Seleccionar todo
-          </label>
+          </div>
+
+          {/* Mazo */}
+          <div className="relative w-full sm:w-44">
+            <FolderOpen className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-soft" />
+            <select
+              className={toolbarFieldClass}
+              value={deckId}
+              onChange={(e) => setDeckId(e.target.value)}
+              aria-label="Filtrar por mazo"
+            >
+              <option value="">Todos los mazos</option>
+              {decks.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Caja */}
+          <div className="relative w-full sm:w-44">
+            <Layers className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-soft" />
+            <select
+              className={toolbarFieldClass}
+              value={caja}
+              onChange={(e) => setCaja(e.target.value)}
+              aria-label="Filtrar por caja"
+            >
+              <option value="">Todas las cajas</option>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <option key={n} value={n}>
+                  Caja {n}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Ordenar por */}
+          <div className="relative w-full sm:w-52">
+            <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-soft" />
+            <select
+              className={toolbarFieldClass}
+              value={order}
+              onChange={(e) => setOrder(e.target.value as CardOrder)}
+              aria-label="Ordenar tarjetas por"
+            >
+              <option value="recientes">Creación (recientes)</option>
+              <option value="proxima">Próxima revisión</option>
+            </select>
+          </div>
+
+          {/* Limpiar filtros (solo visible cuando hay filtros activos) */}
+          {hasFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-xs font-medium text-ink-soft transition-colors hover:bg-primary-muted hover:text-ink"
+            >
+              <X className="size-3.5" />
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+
+        {/* Sub-barra de selección */}
+        {filtered.length > 0 && (
+          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-border-soft/70 pt-2.5 text-xs text-ink-soft">
+            <label className="inline-flex cursor-pointer items-center gap-2 font-medium text-ink-soft hover:text-ink">
+              <input
+                type="checkbox"
+                className="size-4 rounded accent-[#3481BC]"
+                checked={allSelected}
+                onChange={toggleAll}
+              />
+              Seleccionar todo ({filtered.length})
+            </label>
+            {selected.size > 0 && (
+              <span className="font-semibold text-secondary-blue">
+                {selected.size} seleccionada{selected.size === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
         )}
       </div>
 
+      {/* Barra de acciones masivas cuando hay seleccionadas */}
       {selected.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border-soft bg-azul-100 px-3 py-2">
-          <span className="flex items-center gap-1.5 text-sm font-semibold text-secondary-navy">
-            <ListChecks className="size-4" />
-            {selected.size} seleccionada{selected.size === 1 ? '' : 's'}
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-secondary-blue/25 bg-azul-100/70 px-4 py-2.5 shadow-xs dark:bg-secondary-blue/10">
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-secondary-navy dark:text-white">
+            <ListChecks className="size-4 text-secondary-blue" />
+            {selected.size} tarjeta{selected.size === 1 ? '' : 's'} seleccionada{selected.size === 1 ? '' : 's'}
           </span>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <select
-              className={selectClass}
+              className="h-8 rounded-xl border border-border-soft bg-surface px-2.5 text-xs font-medium text-ink outline-none focus:border-secondary-blue"
               value={moveTarget}
               onChange={(e) => setMoveTarget(e.target.value)}
               aria-label="Mover a mazo"
@@ -488,11 +532,11 @@ export function CardsPage() {
               ))}
             </select>
             <Button size="sm" variant="secondary" disabled={!moveTarget || busy} onClick={handleBulkMove}>
-              <FolderInput className="size-4" />
+              <FolderInput className="size-3.5" />
               Mover
             </Button>
             <Button size="sm" variant="danger" disabled={busy} onClick={() => setConfirmBulk(true)}>
-              <Trash2 className="size-4" />
+              <Trash2 className="size-3.5" />
               Borrar
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
@@ -502,6 +546,7 @@ export function CardsPage() {
         </div>
       )}
 
+      {/* Listado de tarjetas */}
       {cards.length === 0 ? (
         <EmptyState
           icon={SquareStack}
@@ -531,82 +576,102 @@ export function CardsPage() {
       ) : (
         <div className="grid gap-3">
           {filtered.map((card) => (
-            <Card key={card.id} className="transition-shadow hover:shadow-md">
-              <CardContent className="grid gap-3 pt-6">
+            <Card
+              key={card.id}
+              className="group rounded-2xl border border-border-soft bg-surface shadow-2xs transition-all duration-150 hover:border-secondary-blue/30 hover:shadow-md"
+            >
+              <CardContent className="grid gap-3.5 p-4 sm:p-5">
+                {/* Contenido: Pregunta y Respuesta diferenciadas en paneles */}
                 <div className="flex items-start gap-3">
                   <input
                     type="checkbox"
-                    className="mt-1 size-4 shrink-0 accent-[#3481BC]"
+                    className="mt-3 size-4 shrink-0 cursor-pointer rounded accent-[#3481BC]"
                     checked={selected.has(card.id)}
                     onChange={() => toggleSelect(card.id)}
                     aria-label={`Seleccionar "${card.frontText.slice(0, 40)}"`}
                   />
-                  <div className="grid flex-1 gap-3 sm:grid-cols-2 sm:gap-6">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Pregunta</p>
-                      <p className="text-sm font-semibold text-ink">{card.frontText}</p>
+                  <div className="grid flex-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
+                    {/* Panel Pregunta */}
+                    <div className="rounded-xl border border-border-soft/80 bg-primary-bg/55 px-3.5 py-2.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-secondary-blue">
+                        Pregunta
+                      </span>
+                      <p className="mt-1 text-sm font-bold leading-snug text-ink">{card.frontText}</p>
                     </div>
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">Respuesta</p>
-                      <p className="text-sm text-ink-soft">{card.backText}</p>
+                    {/* Panel Respuesta */}
+                    <div className="rounded-xl border border-border-soft/60 bg-primary-muted/65 px-3.5 py-2.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
+                        Respuesta
+                      </span>
+                      <p className="mt-1 text-sm font-medium leading-snug text-ink/85">{card.backText}</p>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <CajaBadge caja={card.cajaActual} />
-                  {card.deck && (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft">
+
+                {/* Pie de tarjeta: Metadatos en badges + Acciones agrupadas */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pl-7">
+                  {/* Badges de metadatos */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CajaBadge caja={card.cajaActual} />
+
+                    {card.deck && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-border-soft bg-primary-bg px-2.5 py-0.5 text-xs font-medium text-ink">
+                        <span
+                          className="size-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: card.deck.color ?? DECK_COLOR_FALLBACK }}
+                          aria-hidden
+                        />
+                        {card.deck.nombre}
+                      </span>
+                    )}
+
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border-soft bg-primary-muted/80 px-2.5 py-0.5 text-xs font-medium text-ink-soft">
+                      <Clock className="size-3 shrink-0 text-secondary-blue" />
+                      {formatNextReview(card.proximaRevision)}
+                    </span>
+
+                    {(card.tags ?? []).map((t) => (
                       <span
-                        className="size-2.5 rounded-full"
-                        style={{ backgroundColor: card.deck.color ?? DECK_COLOR_FALLBACK }}
-                        aria-hidden
-                      />
-                      {card.deck.nombre}
-                    </span>
-                  )}
-                  {(card.tags ?? []).map((t) => (
-                    <span
-                      key={t}
-                      className="rounded-full bg-azul-100 px-2 py-0.5 text-[11px] font-medium text-secondary-navy"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                  <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
-                    <Clock className="size-3.5" />
-                    {formatNextReview(card.proximaRevision)}
-                  </span>
-                  <span className="ml-auto flex items-center gap-1">
+                        key={t}
+                        className="inline-flex items-center rounded-full bg-azul-100 px-2.5 py-0.5 text-[11px] font-semibold text-secondary-navy dark:bg-secondary-blue/20 dark:text-white"
+                      >
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Grupo de acciones accesible */}
+                  <div className="ml-auto inline-flex items-center gap-1 rounded-xl border border-border-soft bg-primary-muted/70 p-1">
                     <Button
                       size="icon"
                       variant="ghost"
                       aria-label="Editar tarjeta"
-                      title="Editar"
-                      className="transition-transform hover:-translate-y-px hover:bg-editar-soft hover:text-editar focus-visible:bg-editar-soft focus-visible:text-editar"
+                      title="Editar tarjeta"
+                      className="size-7 rounded-lg text-ink-soft transition-colors hover:bg-editar-soft hover:text-editar focus-visible:bg-editar-soft focus-visible:text-editar"
                       onClick={() => setEditing(card)}
                     >
-                      <Pencil className="size-4" />
+                      <Pencil className="size-3.5" />
                     </Button>
-                    <Link to={`/study?deckId=${card.deckId}`} aria-label="Estudiar este mazo" title="Estudiar">
+                    <Link to={`/study?deckId=${card.deckId}`} aria-label="Estudiar este mazo" title="Estudiar este mazo">
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="transition-transform hover:-translate-y-px hover:bg-ok-soft hover:text-ok focus-visible:bg-ok-soft focus-visible:text-ok"
+                        className="size-7 rounded-lg text-ink-soft transition-colors hover:bg-ok-soft hover:text-ok focus-visible:bg-ok-soft focus-visible:text-ok"
                       >
-                        <Play className="size-4" />
+                        <Play className="size-3.5" />
                       </Button>
                     </Link>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="transition-transform hover:-translate-y-px hover:bg-error-soft hover:text-error focus-visible:bg-error-soft focus-visible:text-error"
+                      className="size-7 rounded-lg text-ink-soft transition-colors hover:bg-error-soft hover:text-error focus-visible:bg-error-soft focus-visible:text-error"
                       aria-label="Borrar tarjeta"
-                      title="Borrar"
+                      title="Borrar tarjeta"
                       onClick={() => setConfirmCard(card)}
                     >
-                      <Trash2 className="size-4" />
+                      <Trash2 className="size-3.5" />
                     </Button>
-                  </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>

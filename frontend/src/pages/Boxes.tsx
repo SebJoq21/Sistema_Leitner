@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
-import { Link, redirect, useLoaderData, useRevalidator, useSearchParams } from 'react-router-dom';
-import { Archive, Check, ChevronRight, Clock, Info, Play, Settings2 } from 'lucide-react';
+import { Link, redirect, useLoaderData, useRevalidator } from 'react-router-dom';
+import { Archive, Check, ChevronRight, Clock, Play, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,17 +88,6 @@ export function BoxesPage() {
   const [intervalos, setIntervalos] = useState<number[]>(initialIntervalos);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [infoOpen, setInfoOpen] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  useEffect(() => {
-    if (searchParams.get('info') === '1') {
-      setInfoOpen(true);
-      const next = new URLSearchParams(searchParams);
-      next.delete('info');
-      setSearchParams(next, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
 
   const total = boxes.reduce((acc, b) => acc + b.total, 0);
   const dueTotal = boxes.reduce((acc, b) => acc + b.pendientes, 0);
@@ -135,22 +124,6 @@ export function BoxesPage() {
           Intervalos
         </Button>
       </div>
-
-      <details
-        className="group rounded-2xl border border-border-soft bg-surface p-4"
-        open={infoOpen}
-        onToggle={(e) => setInfoOpen(e.currentTarget.open)}
-      >
-        <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-ink">
-          <Info className="size-4 text-info" />
-          ¿Cómo funciona el sistema Leitner?
-          <ChevronRight className="ml-auto size-4 text-ink-soft transition-transform group-open:rotate-90" />
-        </summary>
-        <p className="mt-3 text-sm text-ink-soft">
-          Las tarjetas que aciertas suben a la siguiente caja y se repasan con menos frecuencia. Si fallas,
-          vuelven a la Caja 1. Hoy tus intervalos son <span className="font-semibold text-ink">{intervalos.join(' · ')}</span> días.
-        </p>
-      </details>
 
       {/* Barra de distribución */}
       {total > 0 && (
@@ -232,12 +205,6 @@ export function BoxesPage() {
                         </span>
                       </Tooltip>
                     )}
-                    <Link
-                      to={`/cards?caja=${box.caja}`}
-                      className="text-center text-xs font-medium text-secondary-blue hover:underline"
-                    >
-                      Ver tarjetas
-                    </Link>
                   </div>
                 </CardContent>
               </Card>
