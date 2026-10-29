@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLoaderData, useLocation, useNavigate, useNavigation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
+import { BrandMark } from './BrandMark';
 import { Skeleton, SkeletonLine } from './ui/skeleton';
 import { SidebarBody } from './Sidebar';
 import { ThemeToggle } from './ThemeToggle';
@@ -129,7 +130,8 @@ export function Layout() {
           >
             <Menu className="size-5" />
           </button>
-          <Link to="/" className="text-base font-extrabold tracking-tight text-sb-text-strong">
+          <Link to="/" className="flex items-center gap-2 text-base font-extrabold tracking-tight text-sb-text-strong">
+            <BrandMark className="size-8" />
             Leitner
           </Link>
         </div>

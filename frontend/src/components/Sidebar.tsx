@@ -1,18 +1,18 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Archive,
   Flame,
   GraduationCap,
-  Info,
+  HelpCircle,
   Layers,
   PanelLeftClose,
   PanelLeftOpen,
-  Play,
-  Plus,
   SquareStack,
-  Zap,
   type LucideIcon,
 } from 'lucide-react';
+import { BrandMark } from '@/components/BrandMark';
+import { LeitnerTutorialDialog } from '@/components/LeitnerTutorialDialog';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +21,7 @@ interface NavItem {
   label: string;
   end: boolean;
   icon: LucideIcon;
+  color: string;
 }
 
 interface NavGroup {
@@ -32,47 +33,44 @@ const GROUPS: NavGroup[] = [
   {
     label: 'Biblioteca',
     items: [
-      { to: '/', label: 'Mazos', end: true, icon: Layers },
-      { to: '/cards', label: 'Tarjetas', end: false, icon: SquareStack },
+      { to: '/', label: 'Mazos', end: true, icon: Layers, color: '#38BDF8' },
+      { to: '/cards', label: 'Tarjetas', end: false, icon: SquareStack, color: '#A78BFA' },
     ],
   },
   {
     label: 'Estudio',
     items: [
-      { to: '/boxes', label: 'Cajas', end: false, icon: Archive },
-      { to: '/study', label: 'Estudiar', end: false, icon: GraduationCap },
+      { to: '/boxes', label: 'Cajas', end: false, icon: Archive, color: '#FBBF24' },
+      { to: '/study', label: 'Estudiar', end: false, icon: GraduationCap, color: '#34D399' },
     ],
   },
 ];
 
 function NavItemLink({
   item,
-  dueCount,
   collapsed,
   onNavigate,
 }: {
   item: NavItem;
-  dueCount: number;
   collapsed: boolean;
   onNavigate?: () => void;
 }) {
   const Icon = item.icon;
-  const isStudy = item.to === '/study';
 
   const link = (
     <NavLink
       to={item.to}
       end={item.end}
       onClick={onNavigate}
-      title={collapsed ? item.label : undefined}
+      aria-label={collapsed ? item.label : undefined}
       className={({ isActive }) =>
         cn(
-          'group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150 motion-reduce:transition-none',
+          'group relative flex min-h-10 w-full items-center rounded-xl text-sm font-medium transition-all duration-150 motion-reduce:transition-none',
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-sb-accent focus-visible:outline-offset-2',
-          collapsed && 'justify-center px-0',
+          collapsed ? 'justify-center px-0 py-2' : 'gap-3 px-3 py-2',
           isActive &&
             cn(
-              'bg-sb-active-bg font-semibold text-sb-text-strong',
+              'bg-sb-active-bg font-semibold text-sb-text-strong shadow-sm',
               'before:absolute before:left-0 before:top-1/2 before:h-5 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-sb-accent',
             ),
           !isActive && 'text-sb-text/85 hover:bg-sb-accent/10 hover:text-sb-text-strong',
@@ -81,22 +79,18 @@ function NavItemLink({
     >
       {({ isActive }) => (
         <>
-          <Icon
+          <span
             className={cn(
-              'size-4 shrink-0 transition-transform duration-150 motion-reduce:transition-none group-hover:translate-x-0.5',
-              (isStudy || isActive) && 'text-sb-accent',
+              'flex size-7 shrink-0 items-center justify-center rounded-lg transition-transform duration-150 motion-reduce:transition-none group-hover:scale-105',
             )}
-          />
-          {!collapsed && <span className="truncate">{item.label}</span>}
-          {isStudy &&
-            dueCount > 0 &&
-            (collapsed ? (
-              <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-naranja" aria-hidden />
-            ) : (
-              <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-naranja px-1.5 text-[11px] font-bold leading-none text-white">
-                {dueCount}
-              </span>
-            ))}
+            style={{
+              backgroundColor: isActive ? `${item.color}2E` : `${item.color}1A`,
+              color: item.color,
+            }}
+          >
+            <Icon className="size-4 shrink-0" />
+          </span>
+          {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
         </>
       )}
     </NavLink>
@@ -111,70 +105,61 @@ function NavItemLink({
   );
 }
 
-function ProgressRing({ value }: { value: number }) {
-  const size = 40;
-  const stroke = 4;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(1, value));
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 -rotate-90" aria-hidden>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,.18)" strokeWidth={stroke} />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke="var(--color-sb-accent)"
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={c * (1 - pct)}
-        className="transition-[stroke-dashoffset] duration-300 motion-reduce:transition-none"
-      />
-    </svg>
-  );
-}
-
-function DailyGoalCard({ repasadosHoy, dueTotal }: { repasadosHoy: number; dueTotal: number }) {
-  const total = repasadosHoy + dueTotal;
-
-  if (total === 0) {
+function StreakCard({ days, collapsed }: { days: number; collapsed: boolean }) {
+  const active = days > 0;
+  if (collapsed) {
     return (
-      <div className="-mx-4 border-t border-sb-border px-4 pb-2 pt-4 text-center">
-        <p className="text-sm font-semibold text-sb-text-strong">¡Todo al día!</p>
-        <p className="mt-0.5 text-xs text-sb-text/70">Sin tarjetas pendientes</p>
-      </div>
+      <Tooltip content={`${days} ${days === 1 ? 'día' : 'días'} en racha`} side="right">
+        <div
+          className="mx-auto flex size-10 items-center justify-center rounded-xl border transition-transform hover:scale-105"
+          style={{
+            background: active
+              ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.28), rgba(251, 191, 36, 0.14))'
+              : 'rgba(255, 255, 255, 0.06)',
+            borderColor: active ? 'rgba(251, 146, 60, 0.45)' : 'var(--color-sb-border)',
+          }}
+        >
+          <Flame className={cn('size-5', active ? 'text-[#FB923C]' : 'text-sb-text/60')} aria-hidden />
+        </div>
+      </Tooltip>
     );
   }
 
   return (
-    <div className="-mx-4 border-t border-sb-border px-4 pb-2 pt-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-sb-text/70">Meta de hoy</p>
-      <div className="mt-2 flex items-center gap-3">
-        <ProgressRing value={repasadosHoy / total} />
-        <p className="min-w-0 text-sm text-sb-text-strong">
-          <span className="font-bold">{repasadosHoy}</span> de {total} tarjetas hoy
-        </p>
-      </div>
-      <NavLink to="/study" className="mt-2.5 block">
-        <span className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-sb-border text-xs font-semibold text-sb-text-strong transition-colors hover:border-sb-accent hover:bg-white/8">
-          <Play className="size-3.5" />
-          Continuar
+    <div
+      className="relative overflow-hidden rounded-2xl border p-3 shadow-sm"
+      style={{
+        background: active
+          ? 'linear-gradient(135deg, rgba(234, 88, 12, 0.26) 0%, rgba(245, 158, 11, 0.12) 100%)'
+          : 'rgba(255, 255, 255, 0.05)',
+        borderColor: active ? 'rgba(251, 146, 60, 0.4)' : 'var(--color-sb-border)',
+      }}
+    >
+      <div className="flex items-center gap-2.5">
+        <span
+          className="flex size-9 shrink-0 items-center justify-center rounded-xl shadow-sm"
+          style={{
+            background: active
+              ? 'linear-gradient(135deg, #EA580C 0%, #F59E0B 100%)'
+              : 'rgba(255, 255, 255, 0.1)',
+            color: '#FFFFFF',
+          }}
+          aria-hidden
+        >
+          <Flame className="size-4.5 fill-current" />
         </span>
-      </NavLink>
-    </div>
-  );
-}
-
-function StreakMini({ days }: { days: number }) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-2">
-      <Flame className="size-4 shrink-0 text-naranja" aria-hidden />
-      <span className="text-sm font-semibold text-sb-text-strong">
-        {days} {days === 1 ? 'día' : 'días'}
-      </span>
-      <span className="text-xs text-sb-text/70">en racha</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-base font-extrabold leading-none tracking-tight text-sb-text-strong">
+              {days} {days === 1 ? 'día' : 'días'}
+            </span>
+            <span className="text-xs font-semibold text-[#FDBA74]">en racha</span>
+          </div>
+          <p className="mt-1 text-[11px] leading-snug text-sb-text/80">
+            {active ? '¡Sigue así todos los días!' : 'Estudia hoy para encenderla'}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -182,8 +167,6 @@ function StreakMini({ days }: { days: number }) {
 export function SidebarBody({
   collapsed = false,
   onToggleCollapse,
-  dueCount = 0,
-  repasadosHoy = 0,
   rachaDias = 0,
   onNavigate,
 }: {
@@ -194,13 +177,18 @@ export function SidebarBody({
   rachaDias?: number;
   onNavigate?: () => void;
 }) {
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+
   return (
-    <div className={cn('flex h-full flex-col gap-4 p-4', collapsed && 'px-2')}>
-      <div className={cn('flex items-center gap-2 px-1', collapsed && 'flex-col gap-2 px-0')}>
-        <NavLink to="/" onClick={onNavigate} className="flex min-w-0 items-center gap-2">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sb-accent text-sb-accent-ink">
-            <Zap className="size-5" />
-          </span>
+    <div className={cn('flex h-full flex-col gap-4', collapsed ? 'px-2 py-4' : 'p-4')}>
+      <div className={cn('flex w-full items-center gap-2', collapsed ? 'flex-col px-0' : 'px-1')}>
+        <NavLink
+          to="/"
+          onClick={onNavigate}
+          aria-label="Leitner"
+          className={cn('flex min-w-0 items-center gap-2', collapsed && 'justify-center')}
+        >
+          <BrandMark className="size-10" />
           {!collapsed && (
             <span className="min-w-0">
               <span className="block truncate text-lg font-extrabold leading-tight tracking-tight text-sb-text-strong">
@@ -241,7 +229,6 @@ export function SidebarBody({
               <NavItemLink
                 key={item.to}
                 item={item}
-                dueCount={dueCount}
                 collapsed={collapsed}
                 onNavigate={onNavigate}
               />
@@ -250,53 +237,33 @@ export function SidebarBody({
         ))}
       </nav>
 
-      <div className="mt-auto grid gap-2">
-        {!collapsed && <DailyGoalCard repasadosHoy={repasadosHoy} dueTotal={dueCount} />}
+      <div className="mt-auto grid gap-2.5 pt-3">
+        <StreakCard days={rachaDias} collapsed={collapsed} />
 
         {collapsed ? (
-          <Tooltip content={`${rachaDias} en racha`} side="right">
-            <div className="flex items-center justify-center py-2 text-naranja">
-              <Flame className="size-4" aria-hidden />
-            </div>
-          </Tooltip>
-        ) : (
-          <StreakMini days={rachaDias} />
-        )}
-
-        {collapsed ? (
-          <Tooltip content="Nuevo mazo" side="right">
-            <NavLink
-              to="/?nuevo=mazo"
-              onClick={onNavigate}
-              aria-label="Nuevo mazo"
-              title="Nuevo mazo"
-              className="flex items-center justify-center rounded-xl border border-sb-border py-2 text-sb-text transition-colors hover:border-sb-accent hover:bg-white/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sb-accent focus-visible:outline-offset-2"
+          <Tooltip content="Cómo funciona el Sistema Leitner" side="right">
+            <button
+              type="button"
+              onClick={() => setTutorialOpen(true)}
+              aria-label="Cómo funciona el Sistema Leitner"
+              className="mx-auto flex size-10 items-center justify-center rounded-xl border border-sb-border bg-white/5 text-[#38BDF8] transition-colors hover:border-sb-accent/50 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sb-accent focus-visible:outline-offset-2"
             >
-              <Plus className="size-4" />
-            </NavLink>
+              <HelpCircle className="size-4.5" aria-hidden />
+            </button>
           </Tooltip>
         ) : (
-          <NavLink
-            to="/?nuevo=mazo"
-            onClick={onNavigate}
-            className="flex items-center justify-center gap-2 rounded-xl border border-sb-border px-3 py-2 text-sm font-medium text-sb-text transition-colors hover:border-sb-accent hover:bg-white/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sb-accent focus-visible:outline-offset-2"
+          <button
+            type="button"
+            onClick={() => setTutorialOpen(true)}
+            className="group flex w-full items-center justify-center gap-2 rounded-xl border border-sb-border bg-white/6 px-3 py-2 text-xs font-semibold text-sb-text transition-all hover:border-sb-accent/50 hover:bg-white/12 hover:text-sb-text-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-sb-accent focus-visible:outline-offset-2"
           >
-            <Plus className="size-4" />
-            Nuevo mazo
-          </NavLink>
-        )}
-
-        {!collapsed && (
-          <NavLink
-            to="/boxes?info=1"
-            onClick={onNavigate}
-            className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-1 text-xs text-sb-text/65 transition-colors hover:text-sb-text-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-sb-accent focus-visible:outline-offset-2"
-          >
-            <Info className="size-3.5" aria-hidden />
+            <HelpCircle className="size-4 text-[#38BDF8] transition-transform group-hover:scale-110" aria-hidden />
             Cómo funciona
-          </NavLink>
+          </button>
         )}
       </div>
+
+      <LeitnerTutorialDialog open={tutorialOpen} onOpenChange={setTutorialOpen} />
     </div>
   );
 }
