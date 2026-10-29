@@ -99,7 +99,12 @@ export function StudySessionPage() {
         </div>
       </div>
 
-      <StudySessionView initialCards={cards} token={token} nextReview={nextReview} />
+      <StudySessionView
+        key={`${deckId ?? 'all'}-${caja ?? 'all'}`}
+        initialCards={cards}
+        token={token}
+        nextReview={nextReview}
+      />
     </div>
   );
 }

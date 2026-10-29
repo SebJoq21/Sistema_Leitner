@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, Clock, Lightbulb, Plus, RotateCw, Trophy, X } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useRevalidator } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Check, ChevronRight, Clock, Lightbulb, Plus, RotateCw, Trophy, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,11 +11,23 @@ import { api, type DueCard } from '@/lib/api';
 import { cajaTheme, formatNextReview } from '@/lib/leitner';
 import { Flashcard } from './Flashcard';
 
+interface LastTransition {
+  acierto: boolean;
+  fromCaja: number;
+  toCaja: number;
+}
+
 function formatDuration(ms: number): string {
   const total = Math.floor(ms / 1000);
   const m = Math.floor(total / 60);
   const s = total % 60;
   return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function sortByBoxOrder(list: DueCard[]): DueCard[] {
+  return [...list].sort(
+    (a, b) => a.cajaActual - b.cajaActual || a.proximaRevision.localeCompare(b.proximaRevision),
+  );
 }
 
 export function StudySessionView({
@@ -27,12 +39,14 @@ export function StudySessionView({
   token: string;
   nextReview?: string | null;
 }) {
-  const [cards, setCards] = useState<DueCard[]>(initialCards);
+  const revalidator = useRevalidator();
+  const [cards, setCards] = useState<DueCard[]>(() => sortByBoxOrder(initialCards));
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [sending, setSending] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [done, setDone] = useState({ ok: 0, fail: 0 });
+  const [lastTransition, setLastTransition] = useState<LastTransition | null>(null);
   const [elapsedMs, setElapsedMs] = useState<number | null>(null);
   const startedAt = useRef<number>(0);
 
@@ -47,28 +61,65 @@ export function StudySessionView({
     return Math.min(current.cajaActual + 1, 5);
   }, [current]);
 
+  // Agrupación ordenada por caja (Caja 1 → Caja 2 → ... → Caja 5) para mostrar la secuencia explícita.
+  const boxStages = useMemo(() => {
+    return [1, 2, 3, 4, 5]
+      .map((caja) => {
+        let total = 0;
+        let completed = 0;
+        cards.forEach((c, idx) => {
+          if (c.cajaActual === caja) {
+            total += 1;
+            if (idx < index) completed += 1;
+          }
+        });
+        return {
+          caja,
+          total,
+          completed,
+          remaining: total - completed,
+          isCurrent: current?.cajaActual === caja,
+          isDone: total > 0 && completed === total,
+        };
+      })
+      .filter((stage) => stage.total > 0);
+  }, [cards, index, current]);
+
+  const currentBoxProgress = useMemo(() => {
+    if (!current) return null;
+    const stage = boxStages.find((s) => s.caja === current.cajaActual);
+    if (!stage) return null;
+    return {
+      caja: stage.caja,
+      positionInBox: stage.completed + 1,
+      totalInBox: stage.total,
+    };
+  }, [current, boxStages]);
+
   const handleResult = useCallback(
     async (acierto: boolean) => {
       if (!current || sending) return;
       setSending(true);
+      const fromCaja = current.cajaActual;
       try {
         const updated = await api.reviewCard(token, current.id, acierto);
         setDone((d) => ({ ok: d.ok + (acierto ? 1 : 0), fail: d.fail + (acierto ? 0 : 1) }));
-        toast.success(
-          acierto ? `Acertaste → caja ${updated.cajaActual}` : 'Fallaste → vuelve a caja 1',
-        );
+        setLastTransition({ acierto, fromCaja, toCaja: updated.cajaActual });
         setFlipped(false);
         setShowHint(false);
         const next = index + 1;
         setIndex(next);
-        if (next >= cards.length) setElapsedMs(Date.now() - startedAt.current);
+        if (next >= cards.length) {
+          setElapsedMs(Date.now() - startedAt.current);
+          revalidator.revalidate();
+        }
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Error al guardar el repaso');
       } finally {
         setSending(false);
       }
     },
-    [current, sending, token, cards.length, index],
+    [current, sending, token, cards.length, index, revalidator],
   );
 
   // Atajos de teclado: Espacio = voltear, ←/1 = fallo, →/2 = acierto.
@@ -96,11 +147,12 @@ export function StudySessionView({
   }, [current, flipped, handleResult]);
 
   function handleRestart(remaining: DueCard[]) {
-    setCards(remaining);
+    setCards(sortByBoxOrder(remaining));
     setIndex(0);
     setFlipped(false);
     setShowHint(false);
     setDone({ ok: 0, fail: 0 });
+    setLastTransition(null);
     setElapsedMs(null);
     startedAt.current = Date.now();
   }
@@ -185,11 +237,107 @@ export function StudySessionView({
 
   return (
     <div className="grid gap-5">
-      <div className="mx-auto grid w-full max-w-xl gap-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-medium text-ink-soft">
-            Tarjeta {index + 1} de {cards.length}
-          </span>
+      <div className="mx-auto grid w-full max-w-xl gap-3">
+        {/* Ruta secuencial por cajas: Caja 1 → Caja 2 → ... → Caja 5 */}
+        <div className="rounded-xl border border-border-soft bg-surface p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ink-soft">
+            <span className="font-semibold text-ink">
+              Orden de repaso por cajas (de menor a mayor)
+            </span>
+            {currentBoxProgress && (
+              <span>
+                Estudiando <strong className="text-ink">Caja {currentBoxProgress.caja}</strong> (
+                {currentBoxProgress.positionInBox} de {currentBoxProgress.totalInBox})
+              </span>
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {boxStages.map((stage, i) => {
+              const theme = cajaTheme(stage.caja);
+              const Icon = theme.icon;
+              return (
+                <Fragment key={stage.caja}>
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all',
+                      stage.isCurrent && 'border-transparent shadow-sm',
+                      stage.isDone && 'border-border-soft bg-primary-muted text-ink-soft opacity-65',
+                      !stage.isCurrent && !stage.isDone && 'border-border-soft bg-primary-bg text-ink-soft',
+                    )}
+                    style={
+                      stage.isCurrent
+                        ? { backgroundColor: theme.color, color: theme.onColor }
+                        : undefined
+                    }
+                  >
+                    {stage.isDone ? <Check className="size-3.5 text-ok" /> : <Icon className="size-3.5" />}
+                    <span>Caja {stage.caja}</span>
+                    <span
+                      className={cn(
+                        'rounded-full px-1.5 py-0.2 text-[11px]',
+                        stage.isCurrent ? 'bg-black/15' : 'bg-border-soft/60 text-ink',
+                      )}
+                    >
+                      {stage.completed}/{stage.total}
+                    </span>
+                  </span>
+                  {i < boxStages.length - 1 && (
+                    <ChevronRight className="size-3.5 shrink-0 text-ink-soft" aria-hidden />
+                  )}
+                </Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium text-ink-soft">
+              Tarjeta {index + 1} de {cards.length}
+            </span>
+            {(done.ok > 0 || done.fail > 0) && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold">
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-ok-soft px-2 py-0.5 text-ok"
+                  aria-label={`${done.ok} aciertos`}
+                >
+                  <Check className="size-3" />
+                  {done.ok}
+                </span>
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-error-soft px-2 py-0.5 text-error"
+                  aria-label={`${done.fail} fallos`}
+                >
+                  <X className="size-3" />
+                  {done.fail}
+                </span>
+              </span>
+            )}
+            {lastTransition && (
+              <span
+                role="status"
+                aria-live="polite"
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors',
+                  lastTransition.acierto ? 'bg-ok-soft text-ok' : 'bg-error-soft text-error',
+                )}
+              >
+                {lastTransition.acierto ? (
+                  <>
+                    <Check className="size-3" />
+                    {lastTransition.fromCaja === lastTransition.toCaja
+                      ? `Mantiene Caja ${lastTransition.toCaja}`
+                      : `Subió a Caja ${lastTransition.toCaja}`}
+                  </>
+                ) : (
+                  <>
+                    <RotateCw className="size-3" />
+                    {lastTransition.fromCaja === 1 ? 'Sigue en Caja 1' : 'Volvió a Caja 1'}
+                  </>
+                )}
+              </span>
+            )}
+          </div>
           <span className="flex items-center gap-1.5 text-xs text-ink-soft">
             {current.cajaActual < 5 ? (
               <>
@@ -232,24 +380,34 @@ export function StudySessionView({
       {flipped ? (
         <div className="mx-auto flex w-full max-w-xl gap-3">
           <Button
-            className="flex-1"
+            className="h-auto flex-1 flex-col gap-0.5 py-2.5"
             size="lg"
             variant="danger"
             disabled={sending}
             onClick={() => handleResult(false)}
           >
-            <X className="size-5" />
-            No la sabía
+            <span className="inline-flex items-center gap-1.5 text-base font-bold">
+              <X className="size-4" />
+              No la sabía
+            </span>
+            <span className="text-xs font-medium text-white/85">
+              {current.cajaActual === 1 ? 'Sigue en Caja 1' : 'Vuelve a Caja 1'}
+            </span>
           </Button>
           <Button
-            className="flex-1"
+            className="h-auto flex-1 flex-col gap-0.5 py-2.5"
             size="lg"
             variant="success"
             disabled={sending}
             onClick={() => handleResult(true)}
           >
-            <Check className="size-5" />
-            La sabía
+            <span className="inline-flex items-center gap-1.5 text-base font-bold">
+              <Check className="size-4" />
+              La sabía
+            </span>
+            <span className="text-xs font-medium text-white/85">
+              {current.cajaActual < 5 ? `Sube a Caja ${nextCaja}` : 'Mantiene Caja 5'}
+            </span>
           </Button>
         </div>
       ) : (

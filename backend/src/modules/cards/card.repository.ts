@@ -31,7 +31,7 @@ export const cardRepository = {
         ...(caja !== undefined ? { cajaActual: caja } : {}),
         deck: { userId, ...(deckId ? { id: deckId } : {}) },
       },
-      orderBy: { proximaRevision: 'asc' },
+      orderBy: [{ cajaActual: 'asc' }, { proximaRevision: 'asc' }],
       include: { deck: { select: { id: true, nombre: true, color: true, icon: true } } },
     });
   },
