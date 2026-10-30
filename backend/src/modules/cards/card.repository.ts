@@ -1,5 +1,6 @@
 import { prisma } from '../../config/prisma.js';
-import { dateOnlyToUtc } from '../../lib/dates.js';
+import { dateOnlyToUtc, toDateOnly } from '../../lib/dates.js';
+import { HttpError } from '../../errors/http-error.js';
 import { settingsRepository } from '../settings/settings.repository.js';
 import type { CreateCardDto, ListCardsQuery, UpdateCardDto } from './card.dto.js';
 import {
@@ -132,28 +133,61 @@ export const cardRepository = {
   },
 
   async reviewForUser(userId: string, cardId: string, acierto: boolean, today: string) {
-    const card = await prisma.card.findFirstOrThrow({
-      where: { id: cardId, deck: { userId } },
-    });
-    const intervalos = await settingsRepository.intervalsFor(userId);
+    const todayDate = dateOnlyToUtc(today);
 
-    const { nuevaCaja, proximaRevision } = calcularProximaRevision({
-      cajaActual: card.cajaActual,
-      acierto,
-      fechaBase: today,
-      intervalos,
-    });
+    return prisma.$transaction(async (tx) => {
+      const card = await tx.card.findFirst({
+        where: { id: cardId, deck: { userId } },
+      });
 
-    const [updated] = await prisma.$transaction([
-      prisma.card.update({
-        where: { id: card.id },
+      if (!card) {
+        throw new HttpError(404, 'Tarjeta no encontrada');
+      }
+
+      if (card.proximaRevision.getTime() > todayDate.getTime()) {
+        throw new HttpError(409, 'La tarjeta todavía no está pendiente', 'CARD_NOT_DUE', {
+          proximaRevision: toDateOnly(card.proximaRevision),
+        });
+      }
+
+      const intervalos = await settingsRepository.intervalsFor(userId);
+      const { nuevaCaja, proximaRevision } = calcularProximaRevision({
+        cajaActual: card.cajaActual,
+        acierto,
+        fechaBase: today,
+        intervalos,
+      });
+
+      const updatedCount = await tx.card.updateMany({
+        where: {
+          id: card.id,
+          deck: { userId },
+          proximaRevision: { lte: todayDate },
+        },
         data: { cajaActual: nuevaCaja, proximaRevision },
-      }),
-      prisma.review.create({
-        data: { cardId: card.id, resultado: acierto },
-      }),
-    ]);
+      });
 
-    return updated;
+      if (updatedCount.count === 0) {
+        const recheck = await tx.card.findFirst({
+          where: { id: card.id, deck: { userId } },
+        });
+        if (!recheck) {
+          throw new HttpError(404, 'Tarjeta no encontrada');
+        }
+        throw new HttpError(409, 'La tarjeta todavía no está pendiente', 'CARD_NOT_DUE', {
+          proximaRevision: toDateOnly(recheck.proximaRevision),
+        });
+      }
+
+      await tx.review.create({
+        data: { cardId: card.id, resultado: acierto },
+      });
+
+      const updatedCard = await tx.card.findUniqueOrThrow({
+        where: { id: card.id },
+      });
+
+      return updatedCard;
+    });
   },
 };

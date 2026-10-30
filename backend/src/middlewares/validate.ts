@@ -1,5 +1,8 @@
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import type { ZodSchema } from 'zod';
+import { HttpError } from '../errors/http-error.js';
+
+export { HttpError };
 
 // Express 4 no captura errores de handlers async: sin esto, un throw
 // (ej. FK de Prisma) es unhandled rejection y tumba el proceso.
@@ -32,6 +35,21 @@ export function validateQuery(schema: ZodSchema) {
 }
 
 export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
+  if (err instanceof HttpError) {
+    const payload: Record<string, unknown> = {
+      error: err.message,
+    };
+    if (err.code) {
+      payload.code = err.code;
+    }
+    if (err.details && typeof err.details === 'object') {
+      Object.assign(payload, err.details);
+    } else if (err.details !== undefined) {
+      payload.details = err.details;
+    }
+    return res.status(err.status).json(payload);
+  }
+
   console.error(err);
   res.status(500).json({ error: 'Error interno' });
 }
