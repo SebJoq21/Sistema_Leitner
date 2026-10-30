@@ -1,5 +1,20 @@
 const base = (import.meta.env.VITE_API_URL as string | undefined ?? 'http://localhost:3001').replace(/\/$/, '');
 
+export class ApiError extends Error {
+  public readonly status: number;
+  public readonly code?: string;
+  public readonly details?: unknown;
+
+  constructor(status: number, message: string, code?: string, details?: unknown) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.details = details;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
 export interface Deck {
   id: string;
   nombre: string;
@@ -114,8 +129,14 @@ async function request<T>(path: string, token: string, init?: RequestInit): Prom
   }
   if (res.status === 204) return undefined as T;
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error((body as { error?: string }).error ?? `Error ${res.status}`);
+    const body = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      code?: string;
+      details?: unknown;
+      proximaRevision?: string;
+    };
+    const errorMessage = body.error ?? `Error ${res.status}`;
+    throw new ApiError(res.status, errorMessage, body.code, body);
   }
   return (await res.json()) as T;
 }
