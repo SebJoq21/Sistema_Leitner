@@ -205,7 +205,7 @@ La página de Tarjetas SHALL mostrar búsqueda por texto, filtro por mazo, filtr
 
 ### Requirement: Aislamiento en tarjetas ajenas
 
-El sistema SHALL tratar cualquier tarjeta o mazo ajeno como no accesible: no SHALL devolver, modificar, borrar ni repasar datos de otro usuario.
+El sistema SHALL tratar cualquier tarjeta o mazo ajeno como no accesible: no SHALL devolver, modificar, borrar ni repasar datos de otro usuario. El repaso de una tarjeta ajena o inexistente SHALL responder `404` sin crear un `Review`; las demás operaciones SHALL fallar sin modificar la tarjeta ajena.
 
 #### Scenario: Actualizar una tarjeta ajena
 
@@ -226,8 +226,23 @@ El sistema SHALL tratar cualquier tarjeta o mazo ajeno como no accesible: no SHA
 
 - GIVEN una tarjeta que pertenece a otro usuario
 - WHEN el usuario autenticado intenta repasarla
-- THEN la operación falla
+- THEN el backend responde `404`
 - AND no se crea un `Review` para esa tarjeta
+- AND no se revela si la tarjeta existe
+
+#### Scenario: Repasar una tarjeta inexistente
+
+- GIVEN un identificador de tarjeta que no existe
+- WHEN el usuario autenticado intenta repasarla
+- THEN el backend responde `404`
+- AND no se crea un `Review`
+
+#### Scenario: Aislamiento en la cola
+
+- GIVEN tarjetas de dos usuarios
+- WHEN uno abre su cola de estudio
+- THEN la cola solo contiene tarjetas de mazos propios
+- AND no se incluyen tarjetas del otro usuario
 
 ### Requirement: Edición de campos
 
@@ -299,7 +314,6 @@ El formulario de creación SHALL avisar y bloquear el envío cuando ya existe un
 
 ## Preguntas abiertas
 
-- El acceso a una tarjeta ajena no responde `404`. `findFirstOrThrow` lanza una excepción de Prisma y `errorHandler` responde `500` con `{ error: 'Error interno' }`. Lo mismo ocurre al mover a un mazo ajeno, actualizar un mazo ajeno o borrar un mazo ajeno.
 - No existe `GET /api/v1/cards/:id`; la lectura individual solo ocurre a través del listado, la cola de vencidas o la vista de cajas.
 - El backend acepta los filtros `tag` y `pendientes`, pero la página de Tarjetas no los expone. La guía de diseño pidió eliminar esos filtros de la interfaz.
 - La interfaz carga todas las tarjetas y filtra en el navegador; no hay paginación ni carga progresiva.
