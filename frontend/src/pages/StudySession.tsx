@@ -104,7 +104,10 @@ export function StudySessionPage() {
         initialCards={cards}
         token={token}
         nextReview={nextReview}
+        deckId={deckId}
+        caja={caja}
       />
     </div>
   );
 }
+

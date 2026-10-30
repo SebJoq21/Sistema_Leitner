@@ -83,6 +83,54 @@ El sistema SHALL crear toda tarjeta nueva en la Caja 1 con vencimiento para el d
 - THEN la fecha de vencimiento es `2026-10-19`
 - AND otro usuario en `UTC` que crea una tarjeta en el mismo instante obtiene `2026-10-20`
 
+### Requirement: Repaso solo de tarjetas vencidas
+
+El sistema SHALL permitir un repaso solo cuando `proximaRevision` sea menor o igual al día actual en la zona horaria del usuario. Si la tarjeta todavía no está pendiente, SHALL responder `409 Conflict`, SHALL dejar la tarjeta y sus repasos sin cambios y SHALL no revelar datos de otra tarjeta.
+
+#### Scenario: Tarjeta con vencimiento futuro
+
+- GIVEN una tarjeta propia con `proximaRevision` de mañana
+- WHEN el usuario envía `POST /api/v1/cards/:id/review`
+- THEN el backend responde `409`
+- AND la tarjeta conserva su caja y su `proximaRevision`
+- AND no se crea un `Review`
+
+#### Scenario: Tarjeta vencida hoy
+
+- GIVEN una tarjeta propia con `proximaRevision` del día actual en la zona del usuario
+- WHEN el usuario la repasa
+- THEN el backend responde `200`
+- AND se aplica la transición de caja
+
+#### Scenario: Tarjeta vencida ayer
+
+- GIVEN una tarjeta propia con `proximaRevision` de ayer
+- WHEN el usuario la repasa
+- THEN el backend responde `200`
+- AND se aplica la transición de caja
+
+#### Scenario: Límite de medianoche en Lima
+
+- GIVEN una tarjeta agendada para el 20 de octubre y un usuario en `America/Lima`
+- WHEN intenta repasarla a las 23:00 del 19 de octubre
+- THEN el backend responde `409`
+- AND a las 00:01 del 20 de octubre el repaso se acepta
+
+#### Scenario: Dos repasos simultáneos
+
+- GIVEN una tarjeta vencida y dos peticiones de repaso simultáneas
+- WHEN ambas llegan al backend
+- THEN una responde `200` y la otra `409`
+- AND se crea exactamente un `Review`
+- AND la tarjeta avanza una sola caja
+
+#### Scenario: Tarjeta inexistente o ajena
+
+- GIVEN un identificador que no existe o que pertenece a otro usuario
+- WHEN se intenta repasar
+- THEN el backend responde `404`
+- AND no se crea un `Review`
+
 ### Requirement: Transición por acierto
 
 El sistema SHALL subir una caja cuando el repaso es un acierto, con tope en la Caja 5, y SHALL programar la próxima revisión con el intervalo de la caja nueva.
@@ -177,21 +225,47 @@ El sistema SHALL aceptar intervalos configurables por usuario solo cuando sean e
 
 ### Requirement: Registro transaccional del repaso
 
-El sistema SHALL actualizar la caja y la próxima revisión de la tarjeta y crear un registro `Review` en una sola transacción cuando se procesa un repaso.
+El sistema SHALL leer la tarjeta y sus intervalos, validar que esté vencida y que pertenezca al usuario, actualizar la caja y la próxima revisión y crear un registro `Review` dentro de una sola transacción. La actualización SHALL aplicarse solo si la tarjeta sigue vencida al momento de escribir.
 
 #### Scenario: Repaso exitoso
 
-- GIVEN una tarjeta propia y un repaso con `acierto = true`
+- GIVEN una tarjeta propia y vencida, y un repaso con `acierto = true`
 - WHEN el repositorio procesa el repaso
-- THEN actualiza `cajaActual` y `proximaRevision` de la tarjeta
+- THEN valida la pertenencia y el vencimiento dentro de la transacción
+- AND actualiza `cajaActual` y `proximaRevision` de la tarjeta
 - AND crea un `Review` con `resultado = true` y la fecha de revisión
 - AND ambas escrituras pertenecen a la misma transacción
+
+#### Scenario: Tarjeta no vencida
+
+- GIVEN una tarjeta propia con `proximaRevision` futura
+- WHEN el repositorio intenta procesar el repaso
+- THEN lanza un conflicto `409`
+- AND no actualiza la tarjeta
+- AND no crea el `Review`
+- AND la transacción no deja escrituras parciales
+
+#### Scenario: Tarjeta reprogramada por otra petición
+
+- GIVEN dos repasos concurrentes sobre la misma tarjeta vencida
+- WHEN la segunda actualización condicional ya no encuentra la tarjeta vencida
+- THEN la segunda petición responde `409`
+- AND no se crea un segundo `Review`
 
 #### Scenario: Falla una de las escrituras
 
 - GIVEN un error al crear el `Review` o al actualizar la tarjeta
 - WHEN se ejecuta la transacción
 - THEN ninguna de las dos escrituras queda confirmada
+- AND la tarjeta conserva su estado anterior
+
+#### Scenario: Tarjeta ajena o inexistente
+
+- GIVEN una tarjeta de otro usuario o un identificador inexistente
+- WHEN el repositorio la busca dentro de la transacción
+- THEN responde `404`
+- AND no se crea un `Review`
+- AND no se modifica ninguna tarjeta
 
 ### Requirement: Pureza del motor
 
@@ -234,8 +308,6 @@ El sistema SHALL devolver siempre las cinco cajas con su intervalo vigente, tota
 
 - `cajaInicial` cambia la caja, pero no la fecha de vencimiento: una tarjeta creada en Caja 5 vence el día actual.
 - La migración histórica interpreta los timestamps existentes como UTC; una tarjeta creada cerca de la medianoche local puede quedar con un día de diferencia.
-- `reviewForUser` no comprueba que la tarjeta esté vencida. Un cliente puede repasar la misma tarjeta varias veces y subirla de caja sin esperar los intervalos. Esto se aborda en `guard-review-when-due`.
-- La lectura de la tarjeta y de los intervalos ocurre fuera de la transacción. Dos repasos simultáneos pueden leer la misma caja y crear dos `Review`; la transacción actual solo agrupa la actualización y la creación. Esto se aborda en `guard-review-when-due`.
 - `normalizarIntervalos` no exige que los intervalos sean crecientes ni distintos. Un usuario puede guardar `[30, 1, 7, 15, 3]` si cumple los límites.
 - La `proximaRevision` de la vista de cajas usa el mínimo de la caja, que puede ser una fecha ya pasada. La interfaz solo la muestra cuando no hay pendientes.
 - La constante `LEITNER_INTERVALS` se conserva por compatibilidad, pero el cálculo usa `DEFAULT_INTERVALS` y los intervalos del usuario.

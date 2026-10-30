@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { CajaBadge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { api, type DueCard } from '@/lib/api';
+import { api, ApiError, type DueCard } from '@/lib/api';
 import { cajaTheme, formatNextReview } from '@/lib/leitner';
 import { Flashcard } from './Flashcard';
 
@@ -34,16 +34,21 @@ export function StudySessionView({
   initialCards,
   token,
   nextReview,
+  deckId,
+  caja,
 }: {
   initialCards: DueCard[];
   token: string;
   nextReview?: string | null;
+  deckId?: string;
+  caja?: number;
 }) {
   const revalidator = useRevalidator();
   const [cards, setCards] = useState<DueCard[]>(() => sortByBoxOrder(initialCards));
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [sending, setSending] = useState(false);
+  const [reloading, setReloading] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [done, setDone] = useState({ ok: 0, fail: 0 });
   const [lastTransition, setLastTransition] = useState<LastTransition | null>(null);
@@ -64,21 +69,21 @@ export function StudySessionView({
   // Agrupación ordenada por caja (Caja 1 → Caja 2 → ... → Caja 5) para mostrar la secuencia explícita.
   const boxStages = useMemo(() => {
     return [1, 2, 3, 4, 5]
-      .map((caja) => {
+      .map((cajaNum) => {
         let total = 0;
         let completed = 0;
         cards.forEach((c, idx) => {
-          if (c.cajaActual === caja) {
+          if (c.cajaActual === cajaNum) {
             total += 1;
             if (idx < index) completed += 1;
           }
         });
         return {
-          caja,
+          caja: cajaNum,
           total,
           completed,
           remaining: total - completed,
-          isCurrent: current?.cajaActual === caja,
+          isCurrent: current?.cajaActual === cajaNum,
           isDone: total > 0 && completed === total,
         };
       })
@@ -114,7 +119,27 @@ export function StudySessionView({
           revalidator.revalidate();
         }
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Error al guardar el repaso');
+        if (err instanceof ApiError && (err.status === 409 || err.code === 'CARD_NOT_DUE')) {
+          toast.info('Esta tarjeta ya no está pendiente');
+          setCards((prev) => prev.filter((_, i) => i !== index));
+          setFlipped(false);
+          setShowHint(false);
+          if (index >= cards.length - 1) {
+            setElapsedMs(Date.now() - startedAt.current);
+            revalidator.revalidate();
+          }
+        } else if (err instanceof ApiError && err.status === 404) {
+          toast.info('La tarjeta ya no existe');
+          setCards((prev) => prev.filter((_, i) => i !== index));
+          setFlipped(false);
+          setShowHint(false);
+          if (index >= cards.length - 1) {
+            setElapsedMs(Date.now() - startedAt.current);
+            revalidator.revalidate();
+          }
+        } else {
+          toast.error(err instanceof Error ? err.message : 'Error al guardar el repaso');
+        }
       } finally {
         setSending(false);
       }
@@ -146,20 +171,29 @@ export function StudySessionView({
     return () => window.removeEventListener('keydown', onKey);
   }, [current, flipped, handleResult]);
 
-  function handleRestart(remaining: DueCard[]) {
-    setCards(sortByBoxOrder(remaining));
-    setIndex(0);
-    setFlipped(false);
-    setShowHint(false);
-    setDone({ ok: 0, fail: 0 });
-    setLastTransition(null);
-    setElapsedMs(null);
-    startedAt.current = Date.now();
+  async function handleReloadDue() {
+    try {
+      setReloading(true);
+      const fresh = await api.dueCards(token, deckId, caja);
+      setCards(sortByBoxOrder(fresh));
+      setIndex(0);
+      setFlipped(false);
+      setShowHint(false);
+      setDone({ ok: 0, fail: 0 });
+      setLastTransition(null);
+      setElapsedMs(null);
+      startedAt.current = Date.now();
+      revalidator.revalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al actualizar pendientes');
+    } finally {
+      setReloading(false);
+    }
   }
 
   if (!current) {
     const total = done.ok + done.fail;
-    const allDoneEmpty = initialCards.length === 0;
+    const allDoneEmpty = cards.length === 0 && total === 0;
     const pct = total > 0 ? Math.round((done.ok / total) * 100) : 0;
     const elapsed = elapsedMs ?? 0;
     return (
@@ -222,12 +256,10 @@ export function StudySessionView({
                   Agregar tarjetas
                 </Button>
               </Link>
-              {cards.length > 0 && (
-                <Button variant="outline" onClick={() => handleRestart(cards)}>
-                  <RotateCw className="size-4" />
-                  Repasar de nuevo
-                </Button>
-              )}
+              <Button variant="outline" disabled={reloading} onClick={handleReloadDue}>
+                <RotateCw className={cn('size-4', reloading && 'animate-spin')} />
+                Repasar de nuevo
+              </Button>
             </div>
           </div>
         </CardContent>

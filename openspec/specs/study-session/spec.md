@@ -111,7 +111,7 @@ El sistema SHALL aceptar Espacio para voltear, `1` o flecha izquierda para fallo
 
 ### Requirement: Persistencia del repaso y avance
 
-El sistema SHALL enviar cada respuesta al backend antes de avanzar a la siguiente tarjeta. Si el envío falla, SHALL mostrar un error y SHALL mantener al usuario en la tarjeta actual.
+El sistema SHALL enviar cada respuesta al backend antes de avanzar a la siguiente tarjeta. Si el backend indica que la tarjeta ya no está pendiente (`409`) o que ya no existe (`404`), SHALL mostrar un aviso, quitarla de la cola local y avanzar. Si el envío falla por red o por un error del servidor, SHALL mostrar un error y SHALL mantener al usuario en la tarjeta actual.
 
 #### Scenario: Repaso guardado
 
@@ -121,9 +121,26 @@ El sistema SHALL enviar cada respuesta al backend antes de avanzar a la siguient
 - AND se actualizan en la cabecera de la sesión los contadores en vivo y el indicador contextual de la transición de caja (sin mostrar un popup/toast flotante)
 - AND se avanza a la siguiente tarjeta
 
-#### Scenario: Error al guardar
+#### Scenario: Tarjeta que ya no está pendiente
 
-- GIVEN una tarjeta visible y el backend no disponible o respondiendo error
+- GIVEN una tarjeta visible que fue reprogramada desde otra pestaña
+- WHEN el backend responde `409` con `code = CARD_NOT_DUE`
+- THEN se muestra el aviso “Esta tarjeta ya no está pendiente”
+- AND la tarjeta se quita de la cola local
+- AND se avanza a la siguiente tarjeta
+- AND no se reintenta el repaso
+
+#### Scenario: Tarjeta que ya no existe
+
+- GIVEN una tarjeta visible que fue borrada desde otra pestaña
+- WHEN el backend responde `404`
+- THEN se muestra el aviso “La tarjeta ya no existe”
+- AND la tarjeta se quita de la cola local
+- AND se avanza a la siguiente tarjeta
+
+#### Scenario: Error de red o del servidor
+
+- GIVEN una tarjeta visible y el backend no disponible o respondiendo `500`
 - WHEN el usuario marca un resultado
 - THEN se muestra un aviso de error
 - AND la tarjeta actual no cambia
@@ -134,6 +151,14 @@ El sistema SHALL enviar cada respuesta al backend antes de avanzar a la siguient
 - GIVEN un repaso en proceso de envío
 - WHEN el usuario intenta marcar otro resultado
 - THEN el segundo intento se ignora mientras el primero sigue en curso
+
+#### Scenario: Última tarjeta rechazada por no estar pendiente
+
+- GIVEN una sesión con una sola tarjeta que ya fue reprogramada
+- WHEN el usuario marca un resultado y el backend responde `409`
+- THEN se muestra el aviso
+- AND se pasa al resumen de la sesión
+- AND el resumen no cuenta ese intento como acierto ni como fallo
 
 ### Requirement: Resumen de la sesión
 
@@ -192,19 +217,19 @@ El sistema SHALL ofrecer en la interfaz selectores para estudiar todos los mazos
 
 ### Requirement: Repetición manual de la sesión
 
-El sistema SHALL ofrecer la acción “Repasar de nuevo” al finalizar una sesión que tenía tarjetas iniciales, reiniciando la cola completa y el contador de resultados.
+El sistema SHALL ofrecer la acción “Repasar de nuevo” al finalizar una sesión que tenía tarjetas iniciales, recargando las tarjetas pendientes desde el servidor e iniciando los contadores.
 
 #### Scenario: Repasar la misma cola
 
 - GIVEN una sesión terminada que comenzó con tarjetas
 - WHEN el usuario pulsa “Repasar de nuevo”
-- THEN la cola vuelve al inicio con las mismas tarjetas
+- THEN recarga las tarjetas pendientes desde el servidor
+- AND si no quedan tarjetas pendientes, muestra el estado “¡Todo al día!”
 - AND se reinician aciertos, fallos, tiempo y estado de volteo
 
 ## Preguntas abiertas
 
 - La cola es fija: una tarjeta fallada no vuelve a aparecer en la misma sesión. Esto se aborda en `requeue-failed-in-session`.
-- “Repasar de nuevo” reinicia la cola completa y vuelve a llamar al endpoint de repaso. Cuando exista `guard-review-when-due`, esas tarjetas ya no estarán vencidas y los repasos serán rechazados. Hay que decidir si el botón se elimina, se limita a los reintentos o se convierte en un modo de práctica sin efecto sobre cajas.
 - La interfaz usa “La sabía” y “No la sabía”, no “Acerté” y “Fallé” como en la guía original.
 - Los atajos solo ignoran `input` y `textarea`; un `<select>` o un elemento `contenteditable` con foco podría procesar el atajo.
 - El tiempo total se mide desde el montaje del componente y no se pausa al cambiar de pestaña ni al abrir diálogos.
